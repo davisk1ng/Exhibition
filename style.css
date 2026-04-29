@@ -1,0 +1,488 @@
+body {
+  margin: 0;
+  background: linear-gradient(to top, #11152a 58%, #384b84 100%);
+  overflow-x: hidden;
+  font-family: Arial, sans-serif;
+}
+
+.sky {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 55vh;
+  background: linear-gradient(to bottom, #42558f 0%, #728ac4 100%);
+  z-index: 0;
+}
+
+.fullscreen-btn {
+  position: fixed;
+  top: 14px;
+  left: 14px;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(220, 230, 245, 0.75);
+  border-radius: 6px;
+  background: rgba(18, 24, 38, 0.8);
+  padding: 6px;
+  cursor: pointer;
+  z-index: 30;
+  opacity: 0;
+  pointer-events: auto;
+  transition: opacity 0.2s ease;
+}
+
+.fullscreen-btn:hover,
+.fullscreen-btn:focus-visible {
+  opacity: 1;
+}
+
+.fullscreen-btn img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.cityscape-wrapper {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+.scene-layer {
+  position: absolute;
+  left: 0;
+  width: 300vw;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.hills-layer {
+  bottom: 360px;
+  height: 260px;
+  z-index: 1;
+}
+
+.hill-shape {
+  position: absolute;
+  bottom: 0;
+  border-radius: 50% 50% 0 0;
+}
+
+.hill-1 {
+  background: #4f8a5f;
+}
+
+.hill-2 {
+  background: #3f7750;
+}
+
+.hill-3 {
+  background: #5e9a69;
+}
+
+.city-landscape-layer {
+  bottom: 295px;
+  height: 380px;
+  z-index: 2;
+}
+
+.mountain-shape {
+  position: absolute;
+  bottom: 30px;
+  background: linear-gradient(to top, #274067 0%, #49608d 100%);
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  opacity: 0.65;
+}
+
+.skyline-tower {
+  position: absolute;
+  bottom: 0;
+  background: linear-gradient(to top, #1a1d3a 0%, #302f63 100%);
+  border-radius: 3px 3px 0 0;
+  box-shadow: inset 0 0 0 1px rgba(180, 205, 255, 0.12);
+}
+
+.cloud {
+  position: absolute;
+  width: 136px;
+  height: 28px;
+  border-radius: 16px;
+  background: #b8c7e2;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2), inset 0 0 0 1px rgba(95, 116, 152, 0.25);
+}
+
+.cloud::before,
+.cloud::after {
+  content: '';
+  position: absolute;
+  background: #b8c7e2;
+  border-radius: 50%;
+}
+
+.cloud::before {
+  left: 14px;
+  top: -14px;
+  width: 36px;
+  height: 26px;
+}
+
+.cloud::after {
+  left: 46px;
+  top: -18px;
+  width: 44px;
+  height: 32px;
+  box-shadow: 28px 8px 0 0 #b8c7e2;
+}
+
+.sky-blimp {
+  position: absolute;
+  left: -240px;
+  width: 200px;
+  height: 52px;
+  border-radius: 60% 60% 55% 55% / 50% 50% 50% 50%;
+  background: #c9d4e3;
+  box-shadow: inset 0 0 0 2px rgba(96, 111, 138, 0.32), 0 2px 7px rgba(0, 0, 0, 0.2);
+  animation: blimp-cruise linear infinite;
+  transform: scale(0.8);
+  z-index: 1;
+  overflow: visible;
+}
+
+.blimp-billboard {
+  position: absolute;
+  left: 63px;
+  top: 6px;
+  width: 74px;
+  height: 38px;
+  border-radius: 4px;
+  background: #0f1628;
+  border: 2px solid #cfd7e3;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+@keyframes blimp-cruise {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(calc(300vw + 260px));
+  }
+}
+
+.strip-layer {
+  bottom: 115px;
+  height: 470px;
+  z-index: 3;
+}
+
+.buildings {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 300vw;
+  height: 470px;
+  display: flex;
+  align-items: flex-end;
+}
+
+.building {
+  position: relative;
+  margin: 0 14px;
+  border-radius: 4px 4px 0 0;
+  overflow: visible;
+  background: linear-gradient(to top, #1b2638 0%, #27384f 45%, #365173 100%);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.38), inset 0 0 0 1px rgba(210, 224, 245, 0.1);
+}
+
+.building.type-0 {
+  background: linear-gradient(to top, #1f2e45 0%, #324d72 100%);
+}
+
+.building.type-1 {
+  background: linear-gradient(to top, #233327 0%, #3c5b45 100%);
+}
+
+.building.type-2 {
+  background: linear-gradient(to top, #3a3022 0%, #5f4e34 100%);
+}
+
+.building.type-3 {
+  background: linear-gradient(to top, #2a2f34 0%, #49545f 100%);
+}
+
+.window-grid {
+  position: absolute;
+  top: 16px;
+  left: 10px;
+  right: 10px;
+  bottom: 38px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-content: start;
+  gap: 7px 6px;
+}
+
+.window-cell {
+  height: 11px;
+  border-radius: 2px;
+  background: #000;
+  border: 1px solid #111;
+}
+
+.window-cell.lit {
+  background: #ffd400;
+  border-color: #ffd400;
+  box-shadow: 0 0 8px rgba(255, 212, 0, 0.45);
+}
+
+.storefront-band {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 24px;
+  background: linear-gradient(90deg, #141c36, #2a3560, #141c36);
+  border-top: 2px solid rgba(250, 202, 255, 0.45);
+}
+
+.building-roof {
+  position: absolute;
+  top: -7px;
+  left: 0;
+  width: 100%;
+  height: 9px;
+  background: linear-gradient(90deg, #70859b, #9eb0c2, #70859b);
+  border-radius: 3px 3px 0 0;
+}
+
+.foreground-billboard-layer {
+  bottom: 0;
+  height: 100vh;
+  z-index: 12;
+}
+
+.road {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100vw;
+  height: 90px;
+  background: linear-gradient(to bottom, #444 70%, #222 100%);
+  border-top: 8px solid #888;
+  z-index: 5;
+  box-shadow: 0 -2px 16px 0 #000a;
+}
+
+.billboard {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #141923;
+  border: 6px solid #d5dae2;
+  border-radius: 14px;
+  box-shadow: 0 12px 24px rgba(0,0,0,0.45), inset 0 0 0 3px #2a3346;
+  margin: 0;
+  overflow: hidden;
+  position: relative;
+  z-index: 2;
+}
+
+.billboard-frame {
+  position: relative;
+  display: block;
+}
+
+.billboard-frame::before {
+  content: '';
+  position: absolute;
+  top: -12px;
+  left: 0;
+  width: 100%;
+  height: 10px;
+  background: linear-gradient(90deg, #737c8f 0%, #c2c8d4 50%, #737c8f 100%);
+  border-radius: 8px 8px 0 0;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.45);
+}
+
+.billboard-pole {
+  width: 14px;
+  height: 90px;
+  background: linear-gradient(to bottom, #bec4cf 0%, #8b94a7 100%);
+  border-radius: 7px;
+  box-shadow: 0 4px 8px #0004;
+  z-index: 1;
+}
+
+.billboard.web {
+  width: 330px;
+  height: 190px;
+}
+
+.billboard.mobile {
+  width: 175px;
+  height: 250px;
+}
+
+.billboard img, .billboard video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.billboard-frame.foreground {
+  position: absolute;
+  bottom: 200px;
+  z-index: 13;
+}
+
+.roadside-pole {
+  position: absolute;
+  top: 100%;
+  height: 380px;
+}
+
+.roadside-pole.center {
+  left: 50%;
+  transform: translateX(-50%);
+  width: 34px;
+  border-radius: 0;
+}
+
+.billboard-frame.rooftop {
+  transform: scale(0.68);
+  transform-origin: bottom center;
+  z-index: 5;
+}
+
+.rooftop-anchor {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(100% + 8px);
+}
+
+.rooftop-pole {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translateX(-50%);
+  width: 12px;
+  height: 10px;
+  border-radius: 6px;
+}
+
+
+.car-fleet {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 220px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.car-sprite {
+  position: fixed;
+  bottom: var(--car-bottom, 98px);
+  left: -160px;
+  width: 120px;
+  height: 48px;
+  z-index: 10;
+  animation: car-move var(--car-duration, 12s) linear infinite;
+  animation-delay: var(--car-delay, 0s);
+  pointer-events: none;
+}
+.car-body {
+  position: absolute;
+  left: 8px;
+  top: 9px;
+  width: 104px;
+  height: 28px;
+  background: var(--car-color, #e63946);
+  border-radius: 16px 24px 12px 12px;
+  box-shadow: 0 2px 8px #0006;
+}
+.car-roof {
+  position: absolute;
+  left: 32px;
+  top: 0px;
+  width: 56px;
+  height: 20px;
+  background: var(--car-accent, #f1faee);
+  border-radius: 12px 12px 8px 8px;
+  box-shadow: 0 1px 4px #0003;
+}
+.car-window {
+  position: absolute;
+  left: 40px;
+  top: 4px;
+  width: 16px;
+  height: 12px;
+  background: #a3c9f7;
+  border-radius: 4px 4px 4px 4px;
+  opacity: 0.8;
+}
+.car-window2 {
+  position: absolute;
+  left: 62px;
+  top: 4px;
+  width: 16px;
+  height: 12px;
+  background: #a3c9f7;
+  border-radius: 4px 4px 4px 4px;
+  opacity: 0.8;
+}
+.car-headlight {
+  position: absolute;
+  right: 2px;
+  width: 8px;
+  height: 6px;
+  background: #ffe066;
+  border-radius: 6px;
+  box-shadow: 0 0 8px rgba(255, 224, 102, 0.9);
+}
+.car-headlight {
+  top: 20px;
+}
+.car-beam {
+  position: absolute;
+  left: 110px;
+  width: 74px;
+  background: linear-gradient(90deg, rgba(255, 230, 110, 0.5) 0%, rgba(255, 230, 110, 0.08) 100%);
+  clip-path: polygon(0 50%, 100% 0, 100% 100%);
+}
+.car-beam {
+  top: 16px;
+  height: 14px;
+}
+.car-wheel {
+  position: absolute;
+  bottom: 0px;
+  left: 24px;
+  width: 20px;
+  height: 20px;
+  background: #222;
+  border-radius: 50%;
+  border: 4px solid #444;
+  box-shadow: 0 2px 4px #0008;
+}
+.car-wheel2 {
+  position: absolute;
+  bottom: 0px;
+  left: 76px;
+  width: 20px;
+  height: 20px;
+  background: #222;
+  border-radius: 50%;
+  border: 4px solid #444;
+  box-shadow: 0 2px 4px #0008;
+}
+
+@keyframes car-move {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(calc(100vw + 320px)); }
+}
