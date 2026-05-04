@@ -1,7 +1,7 @@
 html,
 body {
   margin: 0;
-  background: linear-gradient(to top, #11152a 58%, #384b84 100%);
+  background: linear-gradient(to top, #0f0f10 58%, #3a3a3d 100%);
   overflow: hidden;
   font-family: Arial, sans-serif;
 }
@@ -12,7 +12,7 @@ body {
   left: 0;
   width: 100vw;
   height: 65vh;
-  background: linear-gradient(to bottom, #42558f 0%, #728ac4 100%);
+  background: linear-gradient(to bottom, #56585e 0%, #8a8d94 100%);
   z-index: 0;
 }
 
@@ -76,15 +76,15 @@ body {
 }
 
 .hill-1 {
-  background: #4f8a5f;
+  background: #575757;
 }
 
 .hill-2 {
-  background: #3f7750;
+  background: #474747;
 }
 
 .hill-3 {
-  background: #5e9a69;
+  background: #686868;
 }
 
 .city-landscape-layer {
@@ -97,13 +97,13 @@ body {
   bottom: 90px;
   height: 280px;
   z-index: -2;
-  background: linear-gradient(to top, #1c2f45 0%, #294564 100%);
+  background: linear-gradient(to top, #1d1e22 0%, #34363c 100%);
 }
 
 .mountain-shape {
   position: absolute;
   bottom: 30px;
-  background: linear-gradient(to top, #274067 0%, #49608d 100%);
+  background: linear-gradient(to top, #2c2f36 0%, #525761 100%);
   clip-path: polygon(50% 0, 100% 100%, 0 100%);
   opacity: 0.65;
 }
@@ -111,7 +111,7 @@ body {
 .skyline-tower {
   position: absolute;
   bottom: 0;
-  background: linear-gradient(to top, #1a1d3a 0%, #302f63 100%);
+  background: linear-gradient(to top, #191a1d 0%, #3a3d45 100%);
   border-radius: 3px 3px 0 0;
   box-shadow: inset 0 0 0 1px rgba(180, 205, 255, 0.12);
 }
@@ -121,7 +121,7 @@ body {
   width: 136px;
   height: 28px;
   border-radius: 16px;
-  background: #b8c7e2;
+  background: #cccccf;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2), inset 0 0 0 1px rgba(95, 116, 152, 0.25);
 }
 
@@ -129,7 +129,7 @@ body {
 .cloud::after {
   content: '';
   position: absolute;
-  background: #b8c7e2;
+  background: #cccccf;
   border-radius: 50%;
 }
 
@@ -145,7 +145,7 @@ body {
   top: -18px;
   width: 44px;
   height: 32px;
-  box-shadow: 28px 8px 0 0 #b8c7e2;
+  box-shadow: 28px 8px 0 0 #cccccf;
 }
 
 .sky-blimp {
@@ -154,8 +154,8 @@ body {
   width: 200px;
   height: 52px;
   border-radius: 60% 60% 55% 55% / 50% 50% 50% 50%;
-  background: #c9d4e3;
-  box-shadow: inset 0 0 0 2px rgba(96, 111, 138, 0.32), 0 2px 7px rgba(0, 0, 0, 0.2);
+  background: #c7c7ca;
+  box-shadow: inset 0 0 0 2px rgba(78, 78, 84, 0.4), 0 2px 7px rgba(0, 0, 0, 0.25);
   animation: blimp-cruise linear infinite;
   transform: scale(0.8);
   z-index: 1;
@@ -170,8 +170,8 @@ body {
   width: clamp(58px, calc(var(--blimp-board-height) * var(--blimp-media-aspect, 1.78)), 114px);
   height: var(--blimp-board-height);
   border-radius: 4px;
-  background: #0f1628;
-  border: 2px solid #cfd7e3;
+  background: #1a1a1d;
+  border: 2px solid #d6d6d9;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
   overflow: hidden;
 }
@@ -190,8 +190,8 @@ body {
   width: 36px;
   height: 12px;
   border-radius: 6px;
-  background: #8d9bb1;
-  box-shadow: inset 0 0 0 1px rgba(220, 230, 245, 0.35);
+  background: #8f8f95;
+  box-shadow: inset 0 0 0 1px rgba(230, 230, 235, 0.35);
 }
 
 @keyframes blimp-cruise {
@@ -224,24 +224,24 @@ body {
   margin: 0 14px;
   border-radius: 4px 4px 0 0;
   overflow: visible;
-  background: linear-gradient(to top, #1b2638 0%, #27384f 45%, #365173 100%);
+  background: linear-gradient(to top, #1f2023 0%, #32343a 45%, #4d5059 100%);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.38), inset 0 0 0 1px rgba(210, 224, 245, 0.1);
 }
 
 .building.type-0 {
-  background: linear-gradient(to top, #1f2e45 0%, #324d72 100%);
+  background: linear-gradient(to top, #24262b 0%, #4f525b 100%);
 }
 
 .building.type-1 {
-  background: linear-gradient(to top, #233327 0%, #3c5b45 100%);
+  background: linear-gradient(to top, #1c1d20 0%, #42444a 100%);
 }
 
 .building.type-2 {
-  background: linear-gradient(to top, #3a3022 0%, #5f4e34 100%);
+  background: linear-gradient(to top, #242424 0%, #505050 100%);
 }
 
 .building.type-3 {
-  background: linear-gradient(to top, #2a2f34 0%, #49545f 100%);
+  background: linear-gradient(to top, #232427 0%, #53565d 100%);
 }
 
 .window-grid {
@@ -265,9 +265,9 @@ body {
 }
 
 .window-cell.lit {
-  background: #ffd400;
-  border-color: #ffd400;
-  box-shadow: 0 0 8px rgba(255, 212, 0, 0.45);
+  background: #f0f0f0;
+  border-color: #f0f0f0;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
 }
 
 .storefront-band {
@@ -276,8 +276,8 @@ body {
   right: 0;
   bottom: 0;
   height: 24px;
-  background: linear-gradient(90deg, #141c36, #2a3560, #141c36);
-  border-top: 2px solid rgba(250, 202, 255, 0.45);
+  background: linear-gradient(90deg, #1a1b1f, #3a3d45, #1a1b1f);
+  border-top: 2px solid rgba(230, 230, 230, 0.4);
 }
 
 .building-roof {
@@ -286,7 +286,7 @@ body {
   left: 0;
   width: 100%;
   height: 9px;
-  background: linear-gradient(90deg, #70859b, #9eb0c2, #70859b);
+  background: linear-gradient(90deg, #70737b, #b2b5bc, #70737b);
   border-radius: 3px 3px 0 0;
 }
 
@@ -329,18 +329,6 @@ body {
   display: block;
 }
 
-.billboard-frame::before {
-  content: '';
-  position: absolute;
-  top: -12px;
-  left: 0;
-  width: 100%;
-  height: 10px;
-  background: linear-gradient(90deg, #737c8f 0%, #c2c8d4 50%, #737c8f 100%);
-  border-radius: 8px 8px 0 0;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.45);
-}
-
 .billboard-pole {
   width: 14px;
   height: 90px;
@@ -352,12 +340,12 @@ body {
 
 .billboard.web,
 .billboard.video-wide {
-  --billboard-height: 190px;
+  --billboard-height: 228px;
 }
 
 .billboard.mobile,
 .billboard.video-tall {
-  --billboard-height: 250px;
+  --billboard-height: 300px;
 }
 
 .billboard img,
@@ -471,7 +459,7 @@ body {
   top: 4px;
   width: 16px;
   height: 12px;
-  background: #a3c9f7;
+  background: #b7bcc4;
   border-radius: 4px 4px 4px 4px;
   opacity: 0.8;
 }
@@ -481,7 +469,7 @@ body {
   top: 4px;
   width: 16px;
   height: 12px;
-  background: #a3c9f7;
+  background: #b7bcc4;
   border-radius: 4px 4px 4px 4px;
   opacity: 0.8;
 }
@@ -490,9 +478,9 @@ body {
   right: 2px;
   width: 8px;
   height: 6px;
-  background: #ffe066;
+  background: #f2f2f2;
   border-radius: 6px;
-  box-shadow: 0 0 8px rgba(255, 224, 102, 0.9);
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.85);
 }
 .car-headlight {
   top: 20px;
@@ -501,7 +489,7 @@ body {
   position: absolute;
   left: 110px;
   width: 74px;
-  background: linear-gradient(90deg, rgba(255, 230, 110, 0.5) 0%, rgba(255, 230, 110, 0.08) 100%);
+  background: linear-gradient(90deg, rgba(245, 245, 245, 0.5) 0%, rgba(245, 245, 245, 0.08) 100%);
   clip-path: polygon(0 50%, 100% 0, 100% 100%);
 }
 .car-beam {

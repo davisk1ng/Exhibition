@@ -153,6 +153,10 @@ function createBillboard(media, variant, idx) {
 
   const triedSrc = new Set();
   let attempt = 0;
+  const guaranteedImageFallback = IMAGE_MEDIA.length
+    ? IMAGE_MEDIA[idx % IMAGE_MEDIA.length]
+    : null;
+  let forcedImageFallbackUsed = false;
 
   const getNextFallbackMedia = () => {
     if (BILLBOARD_MEDIA.length) {
@@ -174,7 +178,14 @@ function createBillboard(media, variant, idx) {
 
   const renderMedia = (nextMedia) => {
     if (!nextMedia) {
-      frame.style.display = 'none';
+      if (guaranteedImageFallback && !forcedImageFallbackUsed) {
+        forcedImageFallbackUsed = true;
+        renderMedia(guaranteedImageFallback);
+        return;
+      }
+      // Last resort: keep a visible board shell instead of disappearing.
+      billboard.className = `billboard ${media.size} media-empty`;
+      billboard.replaceChildren();
       return;
     }
     attempt += 1;
@@ -563,19 +574,31 @@ requestAnimationFrame(autoScroll);
 const car = document.getElementById('car');
 if (car) {
   car.className = 'car-fleet';
-  const carColors = ['#e63946', '#3a86ff', '#ff7b00', '#8d5cf6', '#2ec4b6'];
-  const carAccent = ['#f1faee', '#e9f3ff', '#ffe5cc', '#efe6ff', '#ddfff7'];
+  const carColors = ['#2f2f31', '#3a3a3d', '#4a4a4e', '#57575b', '#67676d'];
+  const carAccent = ['#d8d8da', '#c7c7ca', '#e1e1e3', '#b9b9bd', '#ececee'];
+  const CAR_COUNT = 3;
   const CAR_WIDTH = 120;
-  const CAR_START_MIN = 180;
-  const CAR_START_MAX = 520;
-  const CAR_MIN_SPEED = 90;
-  const CAR_MAX_SPEED = 190;
+  const CAR_MIN_SPEED = 95;
+  const CAR_MAX_SPEED = 185;
+  const CAR_RESPAWN_MIN_GAP = 220;
+  const CAR_RESPAWN_MAX_GAP = 540;
 
-  const pickCarSpeed = () => CAR_MIN_SPEED + Math.random() * (CAR_MAX_SPEED - CAR_MIN_SPEED);
-  const pickCarStartX = () => -(CAR_START_MIN + Math.random() * (CAR_START_MAX - CAR_START_MIN));
+  // In case this script is re-run, clear previous sprites/loop state.
+  car.replaceChildren();
 
   const fleet = [];
-  for (let i = 0; i < 3; i++) {
+  const pickCarSpeed = () => CAR_MIN_SPEED + Math.random() * (CAR_MAX_SPEED - CAR_MIN_SPEED);
+  const pickRespawnGap = () => CAR_RESPAWN_MIN_GAP + Math.random() * (CAR_RESPAWN_MAX_GAP - CAR_RESPAWN_MIN_GAP);
+
+  const getLeftmostX = () => {
+    let leftmost = Infinity;
+    fleet.forEach((state) => {
+      if (state.x < leftmost) leftmost = state.x;
+    });
+    return Number.isFinite(leftmost) ? leftmost : -CAR_WIDTH;
+  };
+
+  for (let i = 0; i < CAR_COUNT; i++) {
     const sprite = document.createElement('div');
     sprite.className = 'car-sprite';
     sprite.style.setProperty('--car-color', carColors[Math.floor(Math.random() * carColors.length)]);
@@ -593,30 +616,47 @@ if (car) {
     `;
     car.appendChild(sprite);
 
+    const leadOffset = (i + 1) * (CAR_RESPAWN_MIN_GAP + 80);
     fleet.push({
       sprite,
-      x: pickCarStartX() - i * 180,
+      x: -CAR_WIDTH - leadOffset,
       speed: pickCarSpeed(),
     });
   }
 
   let lastCarFrameTs = performance.now();
+  const resetCar = (carState) => {
+    const leftmost = getLeftmostX();
+    carState.x = leftmost - pickRespawnGap() - CAR_WIDTH;
+    carState.speed = pickCarSpeed();
+  };
+
   const tickCars = (timestamp) => {
+    if (!Number.isFinite(lastCarFrameTs)) {
+      lastCarFrameTs = timestamp;
+    }
     const dt = Math.min(0.05, (timestamp - lastCarFrameTs) / 1000);
     lastCarFrameTs = timestamp;
     const resetThreshold = window.innerWidth + CAR_WIDTH;
 
     fleet.forEach((carState) => {
+      if (!Number.isFinite(carState.x)) {
+        resetCar(carState);
+      }
       carState.x += carState.speed * dt;
       if (carState.x > resetThreshold) {
-        carState.x = pickCarStartX();
-        carState.speed = pickCarSpeed();
+        resetCar(carState);
       }
       carState.sprite.style.transform = `translateX(${carState.x}px)`;
     });
 
     requestAnimationFrame(tickCars);
   };
+
+  document.addEventListener('visibilitychange', () => {
+    // Prevent giant frame deltas after tab inactivity.
+    lastCarFrameTs = performance.now();
+  });
 
   requestAnimationFrame(tickCars);
 }
