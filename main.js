@@ -31,7 +31,15 @@ if (fullscreenBtn) {
 
 const foregroundSpacing = 460;
 const foregroundDensityMultiplier = 1.5;
-const rooftopDensityMultiplier = 1.5;
+
+const BUILDING_ASSETS = [
+  { buildingId: 1, src: 'assets/buildings/building1.svg', aspectW: 222.33, aspectH: 577.96 },
+  { buildingId: 2, src: 'assets/buildings/building2.svg', aspectW: 303.6, aspectH: 489.48 },
+  { buildingId: 3, src: 'assets/buildings/building3.svg', aspectW: 197.08, aspectH: 592.46 },
+  { buildingId: 4, src: 'assets/buildings/building4.svg', aspectW: 142.9, aspectH: 717.26 },
+];
+const ROOFTOP_ELIGIBLE_BUILDING_IDS = new Set([2, 3]);
+const ASSET_BUILDING_DISPLAY_HEIGHT = 400;
 
 const screenshotFiles = ['1777300186.850243.jpg'];
 const videoFiles = ['feed.mp4', 'final_cropped_bitebuddy.mp4', 'secret pokemon ending.mp4', 'tutorial.mp4', 'UV app.mp4', '256 Project 3.mp4', 'video-export-feed-4x5-hq (1).mp4', 'video-export-story-9x16-hq (2).mp4'];
@@ -394,43 +402,40 @@ function buildCityLandscape() {
 
 function buildStripAndBillboards() {
   const buildings = [];
-  const baseBuildingCount = Math.ceil(sceneWidth / 130) + 8;
   const buildingSpecs = [];
-  for (let i = 0; i < baseBuildingCount; i++) {
-    const height = 180 + Math.random() * 220;
-    const windowRows = 5 + Math.floor(Math.random() * 6);
+  const buildingMargin = 12;
+  let coveredWidth = 0;
+  let patternCursor = 0;
+  const pattern = shuffle(BUILDING_ASSETS.map((_, idx) => idx));
+
+  while (coveredWidth < sceneWidth + 600) {
+    const asset = BUILDING_ASSETS[pattern[patternCursor % pattern.length]];
+    patternCursor += 1;
+    const displayHeight = ASSET_BUILDING_DISPLAY_HEIGHT;
+    const displayWidth = (asset.aspectW / asset.aspectH) * displayHeight;
     buildingSpecs.push({
-      type: i % 4,
-      height,
-      width: 90 + Math.random() * 80,
-      windowCount: windowRows * 3,
+      buildingId: asset.buildingId,
+      rooftopEligible: ROOFTOP_ELIGIBLE_BUILDING_IDS.has(asset.buildingId),
+      src: asset.src,
+      height: displayHeight,
+      width: displayWidth,
     });
+    coveredWidth += displayWidth + buildingMargin * 2;
   }
 
   for (let copy = 0; copy < 2; copy++) {
     buildingSpecs.forEach((spec) => {
       const building = document.createElement('div');
-      building.className = `building type-${spec.type}`;
+      building.className = 'building asset-building';
+      building.dataset.buildingId = String(spec.buildingId);
       building.style.height = `${spec.height}px`;
       building.style.width = `${spec.width}px`;
 
-      const windows = document.createElement('div');
-      windows.className = 'window-grid';
-      for (let w = 0; w < spec.windowCount; w++) {
-        const windowCell = document.createElement('span');
-        windowCell.className = 'window-cell';
-        if (Math.random() > 0.5) windowCell.classList.add('lit');
-        windows.appendChild(windowCell);
-      }
-      building.appendChild(windows);
-
-      const storefront = document.createElement('div');
-      storefront.className = 'storefront-band';
-      building.appendChild(storefront);
-
-      const roof = document.createElement('div');
-      roof.className = 'building-roof';
-      building.appendChild(roof);
+      const img = document.createElement('img');
+      img.src = spec.src;
+      img.alt = '';
+      img.draggable = false;
+      building.appendChild(img);
 
       buildingsContainer.appendChild(building);
       buildings.push(building);
@@ -457,40 +462,13 @@ function buildStripAndBillboards() {
   }
 
   const buildingsPerSegment = buildingSpecs.length;
-  const baseRooftopSlots = Math.max(1, Math.floor((buildingsPerSegment - 1) / 4));
-  const rooftopSlots = Math.max(1, Math.floor(baseRooftopSlots * rooftopDensityMultiplier));
-  const rooftopIndices = [];
-  for (let slot = 0; slot < rooftopSlots; slot++) {
-    const ratio = (slot + 0.5) / rooftopSlots;
-    const idx = Math.min(buildingsPerSegment - 1, Math.max(1, Math.floor(ratio * buildingsPerSegment)));
-    if (!rooftopIndices.includes(idx)) rooftopIndices.push(idx);
-  }
-
-  const canPlaceRooftopBillboard = (specs, idx, mediaSize) => {
-    const current = specs[idx];
-    if (!current) return false;
-
-    const left = specs[Math.max(0, idx - 1)];
-    const right = specs[Math.min(specs.length - 1, idx + 1)];
-    const currentHeight = current.height;
-    const neighborMax = Math.max(left ? left.height : 0, right ? right.height : 0);
-
-    // Safeguard: wide billboards only mount on sufficiently tall/clear rooftops.
-    const wideMedia = mediaSize === 'web' || mediaSize === 'video-wide';
-    if (wideMedia) {
-      return currentHeight >= neighborMax + 30 && currentHeight >= 265 && current.width >= 120;
-    }
-
-    // Mobile billboards still need a modest clearance.
-    return currentHeight >= neighborMax - 12;
-  };
 
   for (let copy = 0; copy < 2; copy++) {
     let rooftopMediaIdx = 0;
-    rooftopIndices.forEach((localIndex) => {
+    for (let localIndex = 0; localIndex < buildingsPerSegment; localIndex++) {
+      if (!buildingSpecs[localIndex].rooftopEligible) continue;
       const media = BILLBOARD_MEDIA[rooftopMediaIdx % BILLBOARD_MEDIA.length];
-      rooftopMediaIdx++;
-      if (!canPlaceRooftopBillboard(buildingSpecs, localIndex, media.size)) return;
+      rooftopMediaIdx += 1;
       const rooftopFrame = createBillboard(media, 'rooftop', localIndex + copy * buildingsPerSegment);
       const support = document.createElement('div');
       support.className = 'billboard-pole rooftop-pole';
@@ -503,7 +481,7 @@ function buildStripAndBillboards() {
       const buildingIndex = copy * buildingsPerSegment + localIndex;
       const targetBuilding = buildings[buildingIndex];
       if (targetBuilding) targetBuilding.appendChild(anchor);
-    });
+    }
   }
 }
 
@@ -530,7 +508,7 @@ buildCityLandscape();
 buildStripAndBillboards();
 requestAnimationFrame(() => {
   preventBillboardTouching('.billboard-frame.foreground', 28);
-  preventBillboardTouching('.billboard-frame.rooftop', 20);
+  preventBillboardTouching('.billboard-frame.rooftop', 8);
 });
 
 let scrollPos = 0;
