@@ -254,6 +254,7 @@ body {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   align-content: start;
   gap: 7px 6px;
+  overflow: hidden;
 }
 
 .window-cell {
@@ -437,13 +438,12 @@ body {
 .car-sprite {
   position: fixed;
   bottom: var(--car-bottom, 98px);
-  left: -160px;
+  left: 0;
   width: 120px;
   height: 48px;
   z-index: 10;
-  animation: car-move var(--car-duration, 12s) linear infinite;
-  animation-delay: var(--car-delay, 0s);
   pointer-events: none;
+  will-change: transform;
 }
 .car-body {
   position: absolute;
@@ -531,7 +531,3 @@ body {
   box-shadow: 0 2px 4px #0008;
 }
 
-@keyframes car-move {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(calc(100vw + 320px)); }
-}

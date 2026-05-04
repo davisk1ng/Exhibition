@@ -30,6 +30,8 @@ if (fullscreenBtn) {
 }
 
 const foregroundSpacing = 460;
+const foregroundDensityMultiplier = 1.5;
+const rooftopDensityMultiplier = 1.5;
 
 const screenshotFiles = ['1777300186.850243.jpg'];
 const videoFiles = ['feed.mp4', 'final_cropped_bitebuddy.mp4', 'secret pokemon ending.mp4', 'tutorial.mp4', 'UV app.mp4', '256 Project 3.mp4', 'video-export-feed-4x5-hq (1).mp4', 'video-export-story-9x16-hq (2).mp4'];
@@ -149,11 +151,34 @@ function createBillboard(media, variant, idx) {
     billboard.style.setProperty('--media-aspect', String(clamped));
   };
 
+  const triedSrc = new Set();
   let attempt = 0;
 
+  const getNextFallbackMedia = () => {
+    if (BILLBOARD_MEDIA.length) {
+      for (let i = 0; i < BILLBOARD_MEDIA.length; i++) {
+        const candidate = BILLBOARD_MEDIA[(idx + attempt + i) % BILLBOARD_MEDIA.length];
+        if (candidate && !triedSrc.has(candidate.src)) return candidate;
+      }
+    }
+
+    if (IMAGE_MEDIA.length) {
+      for (let i = 0; i < IMAGE_MEDIA.length; i++) {
+        const candidate = IMAGE_MEDIA[(idx + i) % IMAGE_MEDIA.length];
+        if (candidate && !triedSrc.has(candidate.src)) return candidate;
+      }
+    }
+
+    return null;
+  };
+
   const renderMedia = (nextMedia) => {
-    if (!nextMedia || attempt >= BILLBOARD_MEDIA.length) return;
+    if (!nextMedia) {
+      frame.style.display = 'none';
+      return;
+    }
     attempt += 1;
+    triedSrc.add(nextMedia.src);
     billboard.className = `billboard ${nextMedia.size} media-${nextMedia.type}`;
     billboard.replaceChildren();
 
@@ -165,7 +190,7 @@ function createBillboard(media, variant, idx) {
         applyAspect(img.naturalWidth / img.naturalHeight);
       }, { once: true });
       img.addEventListener('error', () => {
-        const fallbackMedia = BILLBOARD_MEDIA[(idx + attempt) % BILLBOARD_MEDIA.length];
+        const fallbackMedia = getNextFallbackMedia();
         renderMedia(fallbackMedia);
       }, { once: true });
       billboard.appendChild(img);
@@ -192,12 +217,23 @@ function createBillboard(media, variant, idx) {
       billboard.classList.add('is-ready');
       syncManagedVideoPlayback();
     }, { once: true });
+    video.addEventListener('canplay', () => {
+      billboard.classList.add('is-ready');
+      syncManagedVideoPlayback();
+    }, { once: true });
     video.addEventListener('error', () => {
       billboard.classList.remove('is-ready');
-      const fallbackMedia = BILLBOARD_MEDIA[(idx + attempt) % BILLBOARD_MEDIA.length];
+      const fallbackMedia = getNextFallbackMedia();
       renderMedia(fallbackMedia);
     }, { once: true });
     billboard.appendChild(video);
+
+    // Guard against "forever loading" media that never reaches ready state.
+    setTimeout(() => {
+      if (billboard.classList.contains('is-ready') || !video.isConnected) return;
+      const fallbackMedia = getNextFallbackMedia();
+      renderMedia(fallbackMedia);
+    }, 8000);
   };
 
   renderMedia(media);
@@ -392,7 +428,8 @@ function buildStripAndBillboards() {
 
   const foregroundStart = 220;
   const baseForegroundPositions = [];
-  for (let x = foregroundStart; x <= sceneWidth + 300; x += foregroundSpacing * 2) {
+  const foregroundStep = (foregroundSpacing * 2) / foregroundDensityMultiplier;
+  for (let x = foregroundStart; x <= sceneWidth + 300; x += foregroundStep) {
     baseForegroundPositions.push(x);
   }
   for (let copy = 0; copy < 2; copy++) {
@@ -409,6 +446,15 @@ function buildStripAndBillboards() {
   }
 
   const buildingsPerSegment = buildingSpecs.length;
+  const baseRooftopSlots = Math.max(1, Math.floor((buildingsPerSegment - 1) / 4));
+  const rooftopSlots = Math.max(1, Math.floor(baseRooftopSlots * rooftopDensityMultiplier));
+  const rooftopIndices = [];
+  for (let slot = 0; slot < rooftopSlots; slot++) {
+    const ratio = (slot + 0.5) / rooftopSlots;
+    const idx = Math.min(buildingsPerSegment - 1, Math.max(1, Math.floor(ratio * buildingsPerSegment)));
+    if (!rooftopIndices.includes(idx)) rooftopIndices.push(idx);
+  }
+
   const canPlaceRooftopBillboard = (specs, idx, mediaSize) => {
     const current = specs[idx];
     if (!current) return false;
@@ -430,10 +476,10 @@ function buildStripAndBillboards() {
 
   for (let copy = 0; copy < 2; copy++) {
     let rooftopMediaIdx = 0;
-    for (let localIndex = 1; localIndex < buildingsPerSegment; localIndex += 4) {
+    rooftopIndices.forEach((localIndex) => {
       const media = BILLBOARD_MEDIA[rooftopMediaIdx % BILLBOARD_MEDIA.length];
       rooftopMediaIdx++;
-      if (!canPlaceRooftopBillboard(buildingSpecs, localIndex, media.size)) continue;
+      if (!canPlaceRooftopBillboard(buildingSpecs, localIndex, media.size)) return;
       const rooftopFrame = createBillboard(media, 'rooftop', localIndex + copy * buildingsPerSegment);
       const support = document.createElement('div');
       support.className = 'billboard-pole rooftop-pole';
@@ -446,7 +492,7 @@ function buildStripAndBillboards() {
       const buildingIndex = copy * buildingsPerSegment + localIndex;
       const targetBuilding = buildings[buildingIndex];
       if (targetBuilding) targetBuilding.appendChild(anchor);
-    }
+    });
   }
 }
 
@@ -519,23 +565,22 @@ if (car) {
   car.className = 'car-fleet';
   const carColors = ['#e63946', '#3a86ff', '#ff7b00', '#8d5cf6', '#2ec4b6'];
   const carAccent = ['#f1faee', '#e9f3ff', '#ffe5cc', '#efe6ff', '#ddfff7'];
+  const CAR_WIDTH = 120;
+  const CAR_START_MIN = 180;
+  const CAR_START_MAX = 520;
+  const CAR_MIN_SPEED = 90;
+  const CAR_MAX_SPEED = 190;
 
-  const assignCarSpeed = (sprite) => {
-    const duration = 7 + Math.random() * 7;
-    sprite.style.setProperty('--car-duration', `${duration.toFixed(2)}s`);
-  };
+  const pickCarSpeed = () => CAR_MIN_SPEED + Math.random() * (CAR_MAX_SPEED - CAR_MIN_SPEED);
+  const pickCarStartX = () => -(CAR_START_MIN + Math.random() * (CAR_START_MAX - CAR_START_MIN));
 
+  const fleet = [];
   for (let i = 0; i < 3; i++) {
     const sprite = document.createElement('div');
     sprite.className = 'car-sprite';
     sprite.style.setProperty('--car-color', carColors[Math.floor(Math.random() * carColors.length)]);
     sprite.style.setProperty('--car-accent', carAccent[Math.floor(Math.random() * carAccent.length)]);
     sprite.style.setProperty('--car-bottom', '102px');
-    sprite.style.setProperty('--car-delay', `${-Math.random() * 8}s`);
-    assignCarSpeed(sprite);
-    sprite.addEventListener('animationiteration', () => {
-      assignCarSpeed(sprite);
-    });
     sprite.innerHTML = `
       <div class="car-body"></div>
       <div class="car-roof"></div>
@@ -547,5 +592,31 @@ if (car) {
       <div class="car-wheel2"></div>
     `;
     car.appendChild(sprite);
+
+    fleet.push({
+      sprite,
+      x: pickCarStartX() - i * 180,
+      speed: pickCarSpeed(),
+    });
   }
+
+  let lastCarFrameTs = performance.now();
+  const tickCars = (timestamp) => {
+    const dt = Math.min(0.05, (timestamp - lastCarFrameTs) / 1000);
+    lastCarFrameTs = timestamp;
+    const resetThreshold = window.innerWidth + CAR_WIDTH;
+
+    fleet.forEach((carState) => {
+      carState.x += carState.speed * dt;
+      if (carState.x > resetThreshold) {
+        carState.x = pickCarStartX();
+        carState.speed = pickCarSpeed();
+      }
+      carState.sprite.style.transform = `translateX(${carState.x}px)`;
+    });
+
+    requestAnimationFrame(tickCars);
+  };
+
+  requestAnimationFrame(tickCars);
 }
