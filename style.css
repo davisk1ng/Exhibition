@@ -369,12 +369,6 @@ body {
   object-fit: cover;
 }
 
-.billboard-placeholder {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-}
-
 .billboard video {
   position: relative;
   z-index: 1;
@@ -384,10 +378,6 @@ body {
 
 .billboard:not(.is-ready) video {
   opacity: 0;
-}
-
-.billboard.is-ready .billboard-placeholder {
-  display: none;
 }
 
 .billboard-frame.foreground {

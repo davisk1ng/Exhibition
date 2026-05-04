@@ -5,8 +5,6 @@ const stripLayer = document.getElementById('stripLayer');
 const buildingsContainer = document.getElementById('buildings');
 const foregroundBillboards = document.getElementById('foregroundBillboards');
 const fullscreenBtn = document.getElementById('fullscreenBtn');
-const faviconLink = document.querySelector('link[rel~="icon"]');
-const faviconSrc = faviconLink ? faviconLink.getAttribute('href') : null;
 
 if (fullscreenBtn) {
   const updateFullscreenButton = () => {
@@ -49,14 +47,6 @@ screenshotFiles.forEach((fileName, idx) => {
     size: idx % 2 === 0 ? 'web' : 'mobile',
   });
 });
-
-if (faviconSrc) {
-  BILLBOARD_MEDIA.push({
-    type: 'image',
-    src: faviconSrc,
-    size: 'mobile',
-  });
-}
 
 videoFiles.forEach((fileName) => {
   BILLBOARD_MEDIA.push({
@@ -159,7 +149,6 @@ function createBillboard(media, variant, idx) {
     billboard.style.setProperty('--media-aspect', String(clamped));
   };
 
-  const fallbackImageSrc = faviconSrc || IMAGE_MEDIA[0]?.src || null;
   let attempt = 0;
 
   const renderMedia = (nextMedia) => {
@@ -181,14 +170,6 @@ function createBillboard(media, variant, idx) {
       }, { once: true });
       billboard.appendChild(img);
       return;
-    }
-
-    if (fallbackImageSrc) {
-      const placeholder = document.createElement('img');
-      placeholder.src = fallbackImageSrc;
-      placeholder.alt = 'Showcase';
-      placeholder.className = 'billboard-placeholder';
-      billboard.appendChild(placeholder);
     }
 
     const video = document.createElement('video');
