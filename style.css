@@ -1,7 +1,8 @@
+html,
 body {
   margin: 0;
   background: linear-gradient(to top, #11152a 58%, #384b84 100%);
-  overflow-x: hidden;
+  overflow: hidden;
   font-family: Arial, sans-serif;
 }
 
@@ -10,7 +11,7 @@ body {
   top: 0;
   left: 0;
   width: 100vw;
-  height: 55vh;
+  height: 65vh;
   background: linear-gradient(to bottom, #42558f 0%, #728ac4 100%);
   z-index: 0;
 }
@@ -45,10 +46,13 @@ body {
 }
 
 .cityscape-wrapper {
+  position: fixed;
+  inset: 0;
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  position: relative;
+  transform: scale(1.25);
+  transform-origin: center center;
 }
 
 .scene-layer {
@@ -87,6 +91,13 @@ body {
   bottom: 295px;
   height: 380px;
   z-index: 2;
+}
+
+.rear-ground-block {
+  bottom: 90px;
+  height: 280px;
+  z-index: -2;
+  background: linear-gradient(to top, #1c2f45 0%, #294564 100%);
 }
 
 .mountain-shape {
@@ -155,12 +166,32 @@ body {
   position: absolute;
   left: 63px;
   top: 6px;
-  width: 74px;
-  height: 38px;
+  --blimp-board-height: 38px;
+  width: clamp(58px, calc(var(--blimp-board-height) * var(--blimp-media-aspect, 1.78)), 114px);
+  height: var(--blimp-board-height);
   border-radius: 4px;
   background: #0f1628;
   border: 2px solid #cfd7e3;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+.blimp-billboard-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.blimp-cabin {
+  position: absolute;
+  left: 82px;
+  top: 50px;
+  width: 36px;
+  height: 12px;
+  border-radius: 6px;
+  background: #8d9bb1;
+  box-shadow: inset 0 0 0 1px rgba(220, 230, 245, 0.35);
 }
 
 @keyframes blimp-cruise {
@@ -288,6 +319,8 @@ body {
   overflow: hidden;
   position: relative;
   z-index: 2;
+  width: calc(var(--billboard-height, 190px) * var(--media-aspect, 1.7778));
+  height: var(--billboard-height, 190px);
 }
 
 .billboard-frame {
@@ -310,26 +343,51 @@ body {
 .billboard-pole {
   width: 14px;
   height: 90px;
-  background: linear-gradient(to bottom, #bec4cf 0%, #8b94a7 100%);
+  background: linear-gradient(to bottom, #586173 0%, #343c4b 100%);
   border-radius: 7px;
-  box-shadow: 0 4px 8px #0004;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.35);
   z-index: 1;
 }
 
-.billboard.web {
-  width: 330px;
-  height: 190px;
+.billboard.web,
+.billboard.video-wide {
+  --billboard-height: 190px;
 }
 
-.billboard.mobile {
-  width: 175px;
-  height: 250px;
+.billboard.mobile,
+.billboard.video-tall {
+  --billboard-height: 250px;
 }
 
-.billboard img, .billboard video {
+.billboard img,
+.billboard video {
   width: 100%;
   height: 100%;
+}
+
+.billboard img {
   object-fit: cover;
+}
+
+.billboard-placeholder {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.billboard video {
+  position: relative;
+  z-index: 1;
+  object-fit: contain;
+  background: transparent;
+}
+
+.billboard:not(.is-ready) video {
+  opacity: 0;
+}
+
+.billboard.is-ready .billboard-placeholder {
+  display: none;
 }
 
 .billboard-frame.foreground {
@@ -349,6 +407,7 @@ body {
   transform: translateX(-50%);
   width: 34px;
   border-radius: 0;
+  background: linear-gradient(to bottom, #636d80 0%, #3a4353 100%);
 }
 
 .billboard-frame.rooftop {

@@ -30,13 +30,43 @@ if (fullscreenBtn) {
 
 const foregroundSpacing = 460;
 
-const BILLBOARD_MEDIA = [];
-for (let i = 1; i <= 9; i++) {
-  BILLBOARD_MEDIA.push({ type: 'image', src: `assets/screenshots/example${i}.jpg`, size: i % 3 === 0 ? 'mobile' : 'web' });
-  BILLBOARD_MEDIA.push({ type: 'video', src: `assets/videos/example${i}.mp4`, size: i % 2 === 0 ? 'web' : 'mobile' });
+const screenshotFiles = ['1777300186.850243.jpg'];
+const videoFiles = ['feed.mp4', 'final_cropped_bitebuddy.mp4', 'secret pokemon ending.mp4', 'tutorial.mp4', 'UV app.mp4', '256 Project 3.mp4', 'video-export-feed-4x5-hq.mov', 'video-export-story-9x16-hq.mov'];
+
+function getVideoBillboardSize(fileName) {
+  // Portrait exports should use tall billboards.
+  return /story|9x16|vertical/i.test(fileName) ? 'video-tall' : 'video-wide';
 }
-const foregroundBillboardCount = Math.max(1, Math.floor(BILLBOARD_MEDIA.length / 3));
-const frontRowMediaCount = Math.max(1, Math.floor(foregroundBillboardCount / 2));
+
+const BILLBOARD_MEDIA = [];
+screenshotFiles.forEach((fileName, idx) => {
+  BILLBOARD_MEDIA.push({
+    type: 'image',
+    src: `assets/screenshots/${fileName}`,
+    size: idx % 2 === 0 ? 'web' : 'mobile',
+  });
+});
+
+videoFiles.forEach((fileName) => {
+  BILLBOARD_MEDIA.push({
+    type: 'video',
+    src: `assets/videos/${fileName}`,
+    size: getVideoBillboardSize(fileName),
+  });
+});
+
+const IMAGE_MEDIA = BILLBOARD_MEDIA.filter((media) => media.type === 'image');
+
+// Shuffle array for random billboard order
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+shuffle(BILLBOARD_MEDIA);
+const foregroundBillboardCount = Math.max(8, BILLBOARD_MEDIA.length);
 const sceneWidth = Math.max(
   window.innerWidth * 4,
   800 + (foregroundBillboardCount - 1) * foregroundSpacing
@@ -56,20 +86,74 @@ function createBillboard(media, variant, idx) {
   const billboard = document.createElement('div');
   billboard.className = `billboard ${media.size}`;
 
-  if (media.type === 'image') {
-    const img = document.createElement('img');
-    img.src = media.src;
-    img.alt = 'Showcase';
-    billboard.appendChild(img);
-  } else {
+  const applyAspect = (aspect) => {
+    if (!Number.isFinite(aspect) || aspect <= 0) return;
+    const clamped = Math.min(2.4, Math.max(0.5, aspect));
+    billboard.style.setProperty('--media-aspect', String(clamped));
+  };
+
+  const fallbackImageSrc = IMAGE_MEDIA[0]?.src || null;
+  let attempt = 0;
+
+  const renderMedia = (nextMedia) => {
+    if (!nextMedia || attempt >= BILLBOARD_MEDIA.length) return;
+    attempt += 1;
+    billboard.className = `billboard ${nextMedia.size} media-${nextMedia.type}`;
+    billboard.replaceChildren();
+
+    if (nextMedia.type === 'image') {
+      const img = document.createElement('img');
+      img.src = nextMedia.src;
+      img.alt = 'Showcase';
+      img.addEventListener('load', () => {
+        applyAspect(img.naturalWidth / img.naturalHeight);
+      }, { once: true });
+      img.addEventListener('error', () => {
+        const fallbackMedia = BILLBOARD_MEDIA[(idx + attempt) % BILLBOARD_MEDIA.length];
+        renderMedia(fallbackMedia);
+      }, { once: true });
+      billboard.appendChild(img);
+      return;
+    }
+
+    if (fallbackImageSrc) {
+      const placeholder = document.createElement('img');
+      placeholder.src = fallbackImageSrc;
+      placeholder.alt = 'Showcase';
+      placeholder.className = 'billboard-placeholder';
+      billboard.appendChild(placeholder);
+    }
+
     const video = document.createElement('video');
-    video.src = media.src;
+    video.src = nextMedia.src;
     video.autoplay = true;
     video.loop = true;
     video.muted = true;
+    video.preload = 'metadata';
     video.playsInline = true;
+    video.addEventListener('loadedmetadata', () => {
+      applyAspect(video.videoWidth / video.videoHeight);
+    }, { once: true });
+    video.addEventListener('loadeddata', () => {
+      billboard.classList.add('is-ready');
+    }, { once: true });
+    video.addEventListener('error', () => {
+      billboard.classList.remove('is-ready');
+      const fallbackMedia = BILLBOARD_MEDIA[(idx + attempt) % BILLBOARD_MEDIA.length];
+      renderMedia(fallbackMedia);
+    }, { once: true });
     billboard.appendChild(video);
-  }
+
+    const playAttempt = video.play();
+    if (playAttempt && typeof playAttempt.catch === 'function') {
+      playAttempt.catch(() => {
+        const fallbackMedia = BILLBOARD_MEDIA[(idx + attempt) % BILLBOARD_MEDIA.length];
+        renderMedia(fallbackMedia);
+      });
+    }
+  };
+
+  renderMedia(media);
 
   frame.appendChild(billboard);
   return frame;
@@ -164,7 +248,49 @@ function buildCityLandscape() {
 
   const blimpBillboard = document.createElement('div');
   blimpBillboard.className = 'blimp-billboard';
+  const blimpVideo = document.createElement('video');
+  blimpVideo.className = 'blimp-billboard-video';
+  blimpVideo.autoplay = true;
+  blimpVideo.loop = true;
+  blimpVideo.muted = true;
+  blimpVideo.preload = 'metadata';
+  blimpVideo.playsInline = true;
+  blimpBillboard.appendChild(blimpVideo);
+
+  const blimpVideos = shuffle(videoFiles.map((fileName) => `assets/videos/${fileName}`));
+  let blimpVideoIndex = 0;
+
+  const setBlimpVideo = () => {
+    if (!blimpVideos.length) return;
+    const src = blimpVideos[blimpVideoIndex % blimpVideos.length];
+    blimpVideoIndex += 1;
+    blimpVideo.src = src;
+    blimpVideo.load();
+    const playAttempt = blimpVideo.play();
+    if (playAttempt && typeof playAttempt.catch === 'function') {
+      playAttempt.catch(() => {
+        setBlimpVideo();
+      });
+    }
+  };
+
+  blimpVideo.addEventListener('loadedmetadata', () => {
+    const aspect = blimpVideo.videoWidth / blimpVideo.videoHeight;
+    if (Number.isFinite(aspect) && aspect > 0) {
+      const clamped = Math.min(2.6, Math.max(0.55, aspect));
+      blimpBillboard.style.setProperty('--blimp-media-aspect', String(clamped));
+    }
+  });
+  blimpVideo.addEventListener('error', setBlimpVideo);
+
+  setBlimpVideo();
+  // Rotate the blimp video each time it finishes a full cruise and restarts.
+  blimp.addEventListener('animationiteration', setBlimpVideo);
+
   blimp.appendChild(blimpBillboard);
+  const blimpCabin = document.createElement('div');
+  blimpCabin.className = 'blimp-cabin';
+  blimp.appendChild(blimpCabin);
   cityLandscape.appendChild(blimp);
 }
 
@@ -220,7 +346,8 @@ function buildStripAndBillboards() {
   }
   for (let copy = 0; copy < 2; copy++) {
     baseForegroundPositions.forEach((x, idx) => {
-      const media = BILLBOARD_MEDIA[idx % frontRowMediaCount];
+      const mediaIndex = (idx + copy * baseForegroundPositions.length) % BILLBOARD_MEDIA.length;
+      const media = BILLBOARD_MEDIA[mediaIndex];
       const frontFrame = createBillboard(media, 'foreground', idx + copy * baseForegroundPositions.length);
       frontFrame.style.left = `${x + copy * sceneWidth}px`;
       const centerPole = document.createElement('div');
@@ -241,7 +368,8 @@ function buildStripAndBillboards() {
     const neighborMax = Math.max(left ? left.height : 0, right ? right.height : 0);
 
     // Safeguard: wide billboards only mount on sufficiently tall/clear rooftops.
-    if (mediaSize === 'web') {
+    const wideMedia = mediaSize === 'web' || mediaSize === 'video-wide';
+    if (wideMedia) {
       return currentHeight >= neighborMax + 30 && currentHeight >= 265 && current.width >= 120;
     }
 
@@ -298,19 +426,24 @@ requestAnimationFrame(() => {
 });
 
 let scrollPos = 0;
-const baseSpeed = 0.55;
-function autoScroll() {
-  scrollPos += baseSpeed;
-  const loopWidth = sceneWidth;
-  if (scrollPos > loopWidth) scrollPos = 0;
+const baseSpeed = 33;
+let lastScrollTimestamp = performance.now();
+function autoScroll(timestamp) {
+  const deltaSeconds = Math.min(0.05, (timestamp - lastScrollTimestamp) / 1000);
+  lastScrollTimestamp = timestamp;
+  scrollPos += baseSpeed * deltaSeconds;
+  const hillsOffset = (scrollPos * 0.35) % sceneWidth;
+  const cityOffset = (scrollPos * 0.6) % sceneWidth;
+  const stripOffset = (scrollPos * 0.9) % sceneWidth;
+  const foregroundOffset = scrollPos % sceneWidth;
 
-  hillsLayer.style.transform = `translateX(${-scrollPos * 0.35}px)`;
-  cityLandscape.style.transform = `translateX(${-scrollPos * 0.6}px)`;
-  stripLayer.style.transform = `translateX(${-scrollPos * 0.9}px)`;
-  foregroundBillboards.style.transform = `translateX(${-scrollPos}px)`;
+  hillsLayer.style.transform = `translateX(${-hillsOffset}px)`;
+  cityLandscape.style.transform = `translateX(${-cityOffset}px)`;
+  stripLayer.style.transform = `translateX(${-stripOffset}px)`;
+  foregroundBillboards.style.transform = `translateX(${-foregroundOffset}px)`;
   requestAnimationFrame(autoScroll);
 }
-autoScroll();
+requestAnimationFrame(autoScroll);
 
 // Car visual update
 const car = document.getElementById('car');
@@ -318,14 +451,23 @@ if (car) {
   car.className = 'car-fleet';
   const carColors = ['#e63946', '#3a86ff', '#ff7b00', '#8d5cf6', '#2ec4b6'];
   const carAccent = ['#f1faee', '#e9f3ff', '#ffe5cc', '#efe6ff', '#ddfff7'];
+
+  const assignCarSpeed = (sprite) => {
+    const duration = 7 + Math.random() * 7;
+    sprite.style.setProperty('--car-duration', `${duration.toFixed(2)}s`);
+  };
+
   for (let i = 0; i < 3; i++) {
     const sprite = document.createElement('div');
     sprite.className = 'car-sprite';
     sprite.style.setProperty('--car-color', carColors[Math.floor(Math.random() * carColors.length)]);
     sprite.style.setProperty('--car-accent', carAccent[Math.floor(Math.random() * carAccent.length)]);
     sprite.style.setProperty('--car-bottom', '102px');
-    sprite.style.setProperty('--car-duration', `${9 + Math.random() * 5}s`);
     sprite.style.setProperty('--car-delay', `${-Math.random() * 8}s`);
+    assignCarSpeed(sprite);
+    sprite.addEventListener('animationiteration', () => {
+      assignCarSpeed(sprite);
+    });
     sprite.innerHTML = `
       <div class="car-body"></div>
       <div class="car-roof"></div>
