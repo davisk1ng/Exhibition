@@ -5,6 +5,8 @@ const stripLayer = document.getElementById('stripLayer');
 const buildingsContainer = document.getElementById('buildings');
 const foregroundBillboards = document.getElementById('foregroundBillboards');
 const fullscreenBtn = document.getElementById('fullscreenBtn');
+const faviconLink = document.querySelector('link[rel~="icon"]');
+const faviconSrc = faviconLink ? faviconLink.getAttribute('href') : null;
 
 if (fullscreenBtn) {
   const updateFullscreenButton = () => {
@@ -32,7 +34,7 @@ if (fullscreenBtn) {
 const foregroundSpacing = 460;
 
 const screenshotFiles = ['1777300186.850243.jpg'];
-const videoFiles = ['feed.mp4', 'final_cropped_bitebuddy.mp4', 'secret pokemon ending.mp4', 'tutorial.mp4', 'UV app.mp4', '256 Project 3.mp4', 'video-export-feed-4x5-hq.mov', 'video-export-story-9x16-hq.mov'];
+const videoFiles = ['feed.mp4', 'final_cropped_bitebuddy.mp4', 'secret pokemon ending.mp4', 'tutorial.mp4', 'UV app.mp4', '256 Project 3.mp4', 'video-export-feed-4x5-hq (1).mp4', 'video-export-story-9x16-hq (2).mp4'];
 
 function getVideoBillboardSize(fileName) {
   // Portrait exports should use tall billboards.
@@ -48,6 +50,14 @@ screenshotFiles.forEach((fileName, idx) => {
   });
 });
 
+if (faviconSrc) {
+  BILLBOARD_MEDIA.push({
+    type: 'image',
+    src: faviconSrc,
+    size: 'mobile',
+  });
+}
+
 videoFiles.forEach((fileName) => {
   BILLBOARD_MEDIA.push({
     type: 'video',
@@ -57,6 +67,61 @@ videoFiles.forEach((fileName) => {
 });
 
 const IMAGE_MEDIA = BILLBOARD_MEDIA.filter((media) => media.type === 'image');
+const MAX_ACTIVE_AUTOPLAY_VIDEOS = 6;
+const managedAutoplayVideos = new Set();
+let videoIntersectionObserver = null;
+
+function ensureVideoObserver() {
+  if (videoIntersectionObserver || typeof IntersectionObserver === 'undefined') return;
+  videoIntersectionObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      const video = entry.target;
+      video.dataset.inView = entry.isIntersecting ? '1' : '0';
+    });
+    syncManagedVideoPlayback();
+  }, { threshold: 0.2 });
+}
+
+function syncManagedVideoPlayback() {
+  const connectedVideos = [];
+  managedAutoplayVideos.forEach((video) => {
+    if (video.isConnected) {
+      connectedVideos.push(video);
+      return;
+    }
+    managedAutoplayVideos.delete(video);
+  });
+
+  const sorted = connectedVideos
+    .sort((a, b) => Number(a.dataset.playPriority || 0) - Number(b.dataset.playPriority || 0));
+
+  const visible = sorted.filter((video) => video.dataset.inView === '1');
+  const active = visible.slice(0, MAX_ACTIVE_AUTOPLAY_VIDEOS);
+  const activeSet = new Set(active);
+  const canPlay = !document.hidden;
+
+  sorted.forEach((video) => {
+    const shouldPlay = canPlay && activeSet.has(video);
+    if (shouldPlay) {
+      const playAttempt = video.play();
+      if (playAttempt && typeof playAttempt.catch === 'function') {
+        playAttempt.catch(() => {
+          // Ignore autoplay-policy errors and keep trying on future syncs.
+        });
+      }
+      return;
+    }
+    if (!video.paused) video.pause();
+  });
+}
+
+function registerManagedAutoplayVideo(video, priority) {
+  ensureVideoObserver();
+  video.dataset.playPriority = String(priority);
+  managedAutoplayVideos.add(video);
+  if (videoIntersectionObserver) videoIntersectionObserver.observe(video);
+  syncManagedVideoPlayback();
+}
 
 // Shuffle array for random billboard order
 function shuffle(array) {
@@ -94,7 +159,7 @@ function createBillboard(media, variant, idx) {
     billboard.style.setProperty('--media-aspect', String(clamped));
   };
 
-  const fallbackImageSrc = IMAGE_MEDIA[0]?.src || null;
+  const fallbackImageSrc = faviconSrc || IMAGE_MEDIA[0]?.src || null;
   let attempt = 0;
 
   const renderMedia = (nextMedia) => {
@@ -138,17 +203,13 @@ function createBillboard(media, variant, idx) {
     video.setAttribute('muted', '');
     video.setAttribute('loop', '');
     video.setAttribute('playsinline', '');
+    registerManagedAutoplayVideo(video, idx);
     video.addEventListener('loadedmetadata', () => {
       applyAspect(video.videoWidth / video.videoHeight);
     }, { once: true });
     video.addEventListener('loadeddata', () => {
       billboard.classList.add('is-ready');
-      const readyPlayAttempt = video.play();
-      if (readyPlayAttempt && typeof readyPlayAttempt.catch === 'function') {
-        readyPlayAttempt.catch(() => {
-          // Ignore transient autoplay timing failures here.
-        });
-      }
+      syncManagedVideoPlayback();
     }, { once: true });
     video.addEventListener('error', () => {
       billboard.classList.remove('is-ready');
@@ -156,14 +217,6 @@ function createBillboard(media, variant, idx) {
       renderMedia(fallbackMedia);
     }, { once: true });
     billboard.appendChild(video);
-
-    const playAttempt = video.play();
-    if (playAttempt && typeof playAttempt.catch === 'function') {
-      playAttempt.catch(() => {
-        const fallbackMedia = BILLBOARD_MEDIA[(idx + attempt) % BILLBOARD_MEDIA.length];
-        renderMedia(fallbackMedia);
-      });
-    }
   };
 
   renderMedia(media);
@@ -273,6 +326,7 @@ function buildCityLandscape() {
   blimpVideo.setAttribute('muted', '');
   blimpVideo.setAttribute('loop', '');
   blimpVideo.setAttribute('playsinline', '');
+  registerManagedAutoplayVideo(blimpVideo, -1);
   blimpBillboard.appendChild(blimpVideo);
 
   const blimpVideos = shuffle(videoFiles.map((fileName) => `assets/videos/${fileName}`));
@@ -284,12 +338,7 @@ function buildCityLandscape() {
     blimpVideoIndex += 1;
     blimpVideo.src = src;
     blimpVideo.load();
-    const playAttempt = blimpVideo.play();
-    if (playAttempt && typeof playAttempt.catch === 'function') {
-      playAttempt.catch(() => {
-        setBlimpVideo();
-      });
-    }
+    syncManagedVideoPlayback();
   };
 
   blimpVideo.addEventListener('loadedmetadata', () => {
@@ -300,12 +349,7 @@ function buildCityLandscape() {
     }
   });
   blimpVideo.addEventListener('loadeddata', () => {
-    const readyPlayAttempt = blimpVideo.play();
-    if (readyPlayAttempt && typeof readyPlayAttempt.catch === 'function') {
-      readyPlayAttempt.catch(() => {
-        // Ignore transient autoplay timing failures here.
-      });
-    }
+    syncManagedVideoPlayback();
   });
   blimpVideo.addEventListener('error', setBlimpVideo);
 
@@ -454,21 +498,36 @@ requestAnimationFrame(() => {
 let scrollPos = 0;
 const baseSpeed = 33;
 let lastScrollTimestamp = performance.now();
-function autoScroll(timestamp) {
-  const deltaSeconds = Math.min(0.05, (timestamp - lastScrollTimestamp) / 1000);
-  lastScrollTimestamp = timestamp;
-  scrollPos += baseSpeed * deltaSeconds;
-  const hillsOffset = (scrollPos * 0.35) % sceneWidth;
-  const cityOffset = (scrollPos * 0.6) % sceneWidth;
-  const groundOffset = (scrollPos * 0.75) % sceneWidth;
-  const stripOffset = (scrollPos * 0.9) % sceneWidth;
-  const foregroundOffset = scrollPos % sceneWidth;
 
-  hillsLayer.style.transform = `translateX(${-hillsOffset}px)`;
-  cityLandscape.style.transform = `translateX(${-cityOffset}px)`;
-  rearGroundBlock.style.transform = `translateX(${-groundOffset}px)`;
-  stripLayer.style.transform = `translateX(${-stripOffset}px)`;
-  foregroundBillboards.style.transform = `translateX(${-foregroundOffset}px)`;
+// Reset the timestamp when the tab becomes visible again so the first
+// resumed frame does not produce an enormous delta.
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    lastScrollTimestamp = performance.now();
+  }
+  syncManagedVideoPlayback();
+});
+
+function autoScroll(timestamp) {
+  try {
+    const deltaSeconds = Math.min(0.05, (timestamp - lastScrollTimestamp) / 1000);
+    lastScrollTimestamp = timestamp;
+    // Keep scrollPos bounded to avoid floating-point precision loss over time.
+    scrollPos = (scrollPos + baseSpeed * deltaSeconds) % sceneWidth;
+    const hillsOffset = (scrollPos * 0.35) % sceneWidth;
+    const cityOffset = (scrollPos * 0.6) % sceneWidth;
+    const groundOffset = (scrollPos * 0.75) % sceneWidth;
+    const stripOffset = (scrollPos * 0.9) % sceneWidth;
+    const foregroundOffset = scrollPos;
+
+    hillsLayer.style.transform = `translateX(${-hillsOffset}px)`;
+    cityLandscape.style.transform = `translateX(${-cityOffset}px)`;
+    rearGroundBlock.style.transform = `translateX(${-groundOffset}px)`;
+    stripLayer.style.transform = `translateX(${-stripOffset}px)`;
+    foregroundBillboards.style.transform = `translateX(${-foregroundOffset}px)`;
+  } catch (_err) {
+    // Swallow any render error so the loop always continues.
+  }
   requestAnimationFrame(autoScroll);
 }
 requestAnimationFrame(autoScroll);
