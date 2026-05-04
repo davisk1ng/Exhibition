@@ -348,6 +348,13 @@ function buildCityLandscape() {
   blimp.style.animationDuration = `${34 + Math.floor(Math.random() * 16)}s`;
   blimp.style.animationDelay = `${-Math.floor(Math.random() * 18)}s`;
 
+  const blimpArt = document.createElement('img');
+  blimpArt.className = 'blimp-art';
+  blimpArt.src = 'assets/blimp.svg';
+  blimpArt.alt = '';
+  blimpArt.draggable = false;
+  blimp.appendChild(blimpArt);
+
   const blimpBillboard = document.createElement('div');
   blimpBillboard.className = 'blimp-billboard';
   const blimpVideo = document.createElement('video');
@@ -377,13 +384,6 @@ function buildCityLandscape() {
     syncManagedVideoPlayback();
   };
 
-  blimpVideo.addEventListener('loadedmetadata', () => {
-    const aspect = blimpVideo.videoWidth / blimpVideo.videoHeight;
-    if (Number.isFinite(aspect) && aspect > 0) {
-      const clamped = Math.min(2.6, Math.max(0.55, aspect));
-      blimpBillboard.style.setProperty('--blimp-media-aspect', String(clamped));
-    }
-  });
   blimpVideo.addEventListener('loadeddata', () => {
     syncManagedVideoPlayback();
   });
@@ -394,9 +394,6 @@ function buildCityLandscape() {
   blimp.addEventListener('animationiteration', setBlimpVideo);
 
   blimp.appendChild(blimpBillboard);
-  const blimpCabin = document.createElement('div');
-  blimpCabin.className = 'blimp-cabin';
-  blimp.appendChild(blimpCabin);
   cityLandscape.appendChild(blimp);
 }
 
@@ -568,12 +565,15 @@ if (car) {
   const pickCarSpeed = () => CAR_MIN_SPEED + Math.random() * (CAR_MAX_SPEED - CAR_MIN_SPEED);
   const pickRespawnGap = () => CAR_RESPAWN_MIN_GAP + Math.random() * (CAR_RESPAWN_MAX_GAP - CAR_RESPAWN_MIN_GAP);
 
-  const getLeftmostX = () => {
+  const FULLY_OFF_LEFT = CAR_WIDTH + 96;
+
+  const getLeftmostXExcluding = (exclude) => {
     let leftmost = Infinity;
     fleet.forEach((state) => {
+      if (state === exclude) return;
       if (state.x < leftmost) leftmost = state.x;
     });
-    return Number.isFinite(leftmost) ? leftmost : -CAR_WIDTH;
+    return Number.isFinite(leftmost) ? leftmost : -FULLY_OFF_LEFT * 4;
   };
 
   for (let i = 0; i < CAR_COUNT; i++) {
@@ -604,8 +604,10 @@ if (car) {
 
   let lastCarFrameTs = performance.now();
   const resetCar = (carState) => {
-    const leftmost = getLeftmostX();
-    carState.x = leftmost - pickRespawnGap() - CAR_WIDTH;
+    // Other cars might all be far on the right, so naive spacing could place x inside the viewport.
+    const leftmost = getLeftmostXExcluding(carState);
+    const spacedLeft = leftmost - pickRespawnGap() - CAR_WIDTH;
+    carState.x = Math.min(spacedLeft, -FULLY_OFF_LEFT);
     carState.speed = pickCarSpeed();
   };
 

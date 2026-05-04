@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Local, Software Exhibition 2026 (16:9)</title>
+  <link rel="icon" type="image/png" href="assets/Exhibition%20Favicon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="layout-16x9">
+  <!-- Same exhibition as index.html with layout-16x9: taller zoom from bottom edge, shorter sky strip. -->
+  <div class="sky"></div>
+  <button id="fullscreenBtn" class="fullscreen-btn" type="button" aria-label="Enter fullscreen">
+    <img src="assets/fullscreen.png" alt="" aria-hidden="true">
+  </button>
+
+  <div class="cityscape-wrapper">
+    <div class="scene-layer hills-layer" id="hillsLayer"></div>
+    <div class="scene-layer city-landscape-layer" id="cityLandscape"></div>
+    <div class="scene-layer rear-ground-block" id="rearGroundBlock"></div>
+    <div class="scene-layer strip-layer" id="stripLayer">
+      <div class="buildings" id="buildings"></div>
+    </div>
+    <div class="scene-layer foreground-billboard-layer" id="foregroundBillboards"></div>
+    <div class="road"></div>
+    <div class="car" id="car"></div>
+  </div>
+  <div class="credits-hover" aria-label="Credits">
+    <span class="credits-label">Credits</span>
+    <span class="credits-text">Programmed by Davis King<br>Art by Amelie Carrillo and Sophia Alemar</span>
+  </div>
+  <script src="main.js"></script>
+</body>
+</html>

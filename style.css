@@ -1,7 +1,7 @@
 html,
 body {
   margin: 0;
-  background: linear-gradient(to top, #0f0f10 58%, #3a3a3d 100%);
+  background: linear-gradient(to top, #0f0f10 58%, #393939 100%);
   overflow: hidden;
   font-family: Arial, sans-serif;
 }
@@ -12,7 +12,7 @@ body {
   left: 0;
   width: 100vw;
   height: 65vh;
-  background: linear-gradient(to bottom, #56585e 0%, #8a8d94 100%);
+  background: linear-gradient(to bottom, #575757 0%, #8f8f8f 100%);
   z-index: 0;
 }
 
@@ -51,8 +51,19 @@ body {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  transform: scale(1.25);
-  transform-origin: center center;
+  transform: scale(var(--cityscape-scale, 1.25));
+  transform-origin: var(--cityscape-origin-x, center) var(--cityscape-origin-y, center);
+}
+
+/* 16:9 / 1920×1080 kiosk: crop excess sky; keep road anchored; tighter framing like a photo crop. */
+body.layout-16x9 {
+  --cityscape-scale: 1.62;
+  --cityscape-origin-x: center;
+  --cityscape-origin-y: bottom;
+}
+
+body.layout-16x9 .sky {
+  height: 30vh;
 }
 
 .scene-layer {
@@ -97,13 +108,13 @@ body {
   bottom: 90px;
   height: 280px;
   z-index: -2;
-  background: linear-gradient(to top, #1d1e22 0%, #34363c 100%);
+  background: linear-gradient(to top, #171717 0%, #383838 100%);
 }
 
 .mountain-shape {
   position: absolute;
   bottom: 30px;
-  background: linear-gradient(to top, #2c2f36 0%, #525761 100%);
+  background: linear-gradient(to top, #262626 0%, #4e4e4e 100%);
   clip-path: polygon(50% 0, 100% 100%, 0 100%);
   opacity: 0.65;
 }
@@ -111,9 +122,9 @@ body {
 .skyline-tower {
   position: absolute;
   bottom: 0;
-  background: linear-gradient(to top, #191a1d 0%, #3a3d45 100%);
+  background: linear-gradient(to top, #181818 0%, #3d3d3d 100%);
   border-radius: 3px 3px 0 0;
-  box-shadow: inset 0 0 0 1px rgba(180, 205, 255, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(230, 230, 232, 0.1);
 }
 
 .cloud {
@@ -122,7 +133,7 @@ body {
   height: 28px;
   border-radius: 16px;
   background: #cccccf;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2), inset 0 0 0 1px rgba(95, 116, 152, 0.25);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2), inset 0 0 0 1px rgba(72, 72, 74, 0.28);
 }
 
 .cloud::before,
@@ -150,56 +161,51 @@ body {
 
 .sky-blimp {
   position: absolute;
-  left: -240px;
+  left: -280px;
   width: 200px;
-  height: 52px;
-  border-radius: 60% 60% 55% 55% / 50% 50% 50% 50%;
-  background: #c7c7ca;
-  box-shadow: inset 0 0 0 2px rgba(78, 78, 84, 0.4), 0 2px 7px rgba(0, 0, 0, 0.25);
+  height: 200px;
   animation: blimp-cruise linear infinite;
-  transform: scale(0.8);
   z-index: 1;
-  overflow: visible;
+  overflow: hidden;
+  pointer-events: none;
 }
 
+.blimp-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  user-select: none;
+}
+
+/* Video overlays the main balloon hull in blimp.svg (ellipse cx=360 cy=321, rx≈354, ry≈122; viewBox 720×720). */
 .blimp-billboard {
   position: absolute;
-  left: 63px;
-  top: 6px;
-  --blimp-board-height: 38px;
-  width: clamp(58px, calc(var(--blimp-board-height) * var(--blimp-media-aspect, 1.78)), 114px);
-  height: var(--blimp-board-height);
-  border-radius: 4px;
-  background: #1a1a1d;
-  border: 2px solid #d6d6d9;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  left: 32.65%;
+  top: 37.5%;
+  width: 34.7%;
+  height: 15.3%;
+  border-radius: 6px;
+  background: #0a0a0b;
   overflow: hidden;
+  z-index: 1;
 }
 
 .blimp-billboard-video {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   display: block;
-}
-
-.blimp-cabin {
-  position: absolute;
-  left: 82px;
-  top: 50px;
-  width: 36px;
-  height: 12px;
-  border-radius: 6px;
-  background: #8f8f95;
-  box-shadow: inset 0 0 0 1px rgba(230, 230, 235, 0.35);
 }
 
 @keyframes blimp-cruise {
   0% {
-    transform: translateX(0);
+    transform: translateX(0) scale(0.78);
   }
   100% {
-    transform: translateX(calc(300vw + 260px));
+    transform: translateX(calc(300vw + 260px)) scale(0.78);
   }
 }
 
@@ -324,8 +330,8 @@ body {
   left: 0;
   width: 100vw;
   height: 90px;
-  background: linear-gradient(to bottom, #444 70%, #222 100%);
-  border-top: 8px solid #888;
+  background: linear-gradient(to bottom, #3a3a3a 70%, #1a1a1a 100%);
+  border-top: 8px solid #8c8c8c;
   z-index: 5;
   box-shadow: 0 -2px 16px 0 #000a;
 }
