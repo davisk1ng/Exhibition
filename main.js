@@ -1,5 +1,6 @@
 const hillsLayer = document.getElementById('hillsLayer');
 const cityLandscape = document.getElementById('cityLandscape');
+const rearGroundBlock = document.getElementById('rearGroundBlock');
 const stripLayer = document.getElementById('stripLayer');
 const buildingsContainer = document.getElementById('buildings');
 const foregroundBillboards = document.getElementById('foregroundBillboards');
@@ -75,6 +76,7 @@ const layerWidth = sceneWidth * 2 + window.innerWidth;
 
 hillsLayer.style.width = `${layerWidth}px`;
 cityLandscape.style.width = `${layerWidth}px`;
+rearGroundBlock.style.width = `${layerWidth}px`;
 stripLayer.style.width = `${layerWidth}px`;
 buildingsContainer.style.width = `${layerWidth}px`;
 foregroundBillboards.style.width = `${layerWidth}px`;
@@ -129,13 +131,24 @@ function createBillboard(media, variant, idx) {
     video.autoplay = true;
     video.loop = true;
     video.muted = true;
-    video.preload = 'metadata';
+    video.defaultMuted = true;
+    video.preload = 'auto';
     video.playsInline = true;
+    video.setAttribute('autoplay', '');
+    video.setAttribute('muted', '');
+    video.setAttribute('loop', '');
+    video.setAttribute('playsinline', '');
     video.addEventListener('loadedmetadata', () => {
       applyAspect(video.videoWidth / video.videoHeight);
     }, { once: true });
     video.addEventListener('loadeddata', () => {
       billboard.classList.add('is-ready');
+      const readyPlayAttempt = video.play();
+      if (readyPlayAttempt && typeof readyPlayAttempt.catch === 'function') {
+        readyPlayAttempt.catch(() => {
+          // Ignore transient autoplay timing failures here.
+        });
+      }
     }, { once: true });
     video.addEventListener('error', () => {
       billboard.classList.remove('is-ready');
@@ -253,8 +266,13 @@ function buildCityLandscape() {
   blimpVideo.autoplay = true;
   blimpVideo.loop = true;
   blimpVideo.muted = true;
-  blimpVideo.preload = 'metadata';
+  blimpVideo.defaultMuted = true;
+  blimpVideo.preload = 'auto';
   blimpVideo.playsInline = true;
+  blimpVideo.setAttribute('autoplay', '');
+  blimpVideo.setAttribute('muted', '');
+  blimpVideo.setAttribute('loop', '');
+  blimpVideo.setAttribute('playsinline', '');
   blimpBillboard.appendChild(blimpVideo);
 
   const blimpVideos = shuffle(videoFiles.map((fileName) => `assets/videos/${fileName}`));
@@ -279,6 +297,14 @@ function buildCityLandscape() {
     if (Number.isFinite(aspect) && aspect > 0) {
       const clamped = Math.min(2.6, Math.max(0.55, aspect));
       blimpBillboard.style.setProperty('--blimp-media-aspect', String(clamped));
+    }
+  });
+  blimpVideo.addEventListener('loadeddata', () => {
+    const readyPlayAttempt = blimpVideo.play();
+    if (readyPlayAttempt && typeof readyPlayAttempt.catch === 'function') {
+      readyPlayAttempt.catch(() => {
+        // Ignore transient autoplay timing failures here.
+      });
     }
   });
   blimpVideo.addEventListener('error', setBlimpVideo);
@@ -434,11 +460,13 @@ function autoScroll(timestamp) {
   scrollPos += baseSpeed * deltaSeconds;
   const hillsOffset = (scrollPos * 0.35) % sceneWidth;
   const cityOffset = (scrollPos * 0.6) % sceneWidth;
+  const groundOffset = (scrollPos * 0.75) % sceneWidth;
   const stripOffset = (scrollPos * 0.9) % sceneWidth;
   const foregroundOffset = scrollPos % sceneWidth;
 
   hillsLayer.style.transform = `translateX(${-hillsOffset}px)`;
   cityLandscape.style.transform = `translateX(${-cityOffset}px)`;
+  rearGroundBlock.style.transform = `translateX(${-groundOffset}px)`;
   stripLayer.style.transform = `translateX(${-stripOffset}px)`;
   foregroundBillboards.style.transform = `translateX(${-foregroundOffset}px)`;
   requestAnimationFrame(autoScroll);
