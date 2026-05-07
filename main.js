@@ -39,15 +39,14 @@ const BUILDING_ASSETS = [
   { buildingId: 4, src: 'assets/buildings/building4.svg', aspectW: 142.9, aspectH: 717.26 },
 ];
 const MOUNTAIN_ASSETS = [
-  { src: 'assets/mountains/mountain%201.svg', aspectW: 278, aspectH: 121 },
-  { src: 'assets/mountains/mountain%202.svg', aspectW: 278, aspectH: 121 },
-  { src: 'assets/mountains/mountain%203.svg', aspectW: 278, aspectH: 121 },
+  { src: 'assets/mountains/mountain%201.png', aspectW: 278, aspectH: 121 },
+  { src: 'assets/mountains/mountain%202.png', aspectW: 278, aspectH: 121 },
 ];
 const ROOFTOP_ELIGIBLE_BUILDING_IDS = new Set([2, 3]);
 const ASSET_BUILDING_DISPLAY_HEIGHT = 400;
 
 const screenshotFiles = ['1777300186.850243.jpg'];
-const videoFiles = ['feed.mp4', 'final_cropped_bitebuddy.mp4', 'secret pokemon ending.mp4', 'tutorial.mp4', 'UV app.mp4', '256 Project 3.mp4', 'video-export-feed-4x5-hq (1).mp4', 'video-export-story-9x16-hq (2).mp4'];
+const videoFiles = ['Screen RecordingSquare.mov', 'video-export 4-5.mp4', 'Finventory Recording.mov', 'Flicker Exhibition Video.mp4'];
 
 function getVideoBillboardSize(fileName) {
   // Portrait exports should use tall billboards.
@@ -267,6 +266,19 @@ function createBillboard(media, variant, idx) {
 }
 
 function buildHills() {
+  const mountainCount = Math.ceil(sceneWidth / 260) + 3;
+  const mountainSpecs = [];
+  for (let i = 0; i < mountainCount; i++) {
+    const height = 58 + Math.random() * 60;
+    const mountainAsset = MOUNTAIN_ASSETS[i % MOUNTAIN_ASSETS.length];
+    mountainSpecs.push({
+      left: i * 260 + (Math.random() * 80),
+      width: (mountainAsset.aspectW / mountainAsset.aspectH) * height,
+      height,
+      src: mountainAsset.src,
+    });
+  }
+
   const baseHillCount = Math.ceil(sceneWidth / 260) + 3;
   const hillSpecs = [];
   for (let i = 0; i < baseHillCount; i++) {
@@ -279,6 +291,18 @@ function buildHills() {
   }
 
   for (let copy = 0; copy < 2; copy++) {
+    mountainSpecs.forEach((spec) => {
+      const mountain = document.createElement('img');
+      mountain.className = 'mountain-shape mountain-asset';
+      mountain.style.left = `${spec.left + copy * sceneWidth}px`;
+      mountain.style.width = `${spec.width}px`;
+      mountain.style.height = `${spec.height}px`;
+      mountain.src = spec.src;
+      mountain.alt = '';
+      mountain.draggable = false;
+      hillsLayer.appendChild(mountain);
+    });
+
     hillSpecs.forEach((spec) => {
       const hill = document.createElement('div');
       hill.className = spec.className;
@@ -291,19 +315,6 @@ function buildHills() {
 }
 
 function buildCityLandscape() {
-  const mountainCount = Math.ceil(sceneWidth / 230) + 3;
-  const mountainSpecs = [];
-  for (let i = 0; i < mountainCount; i++) {
-    const height = 80 + Math.random() * 90;
-    const mountainAsset = MOUNTAIN_ASSETS[i % MOUNTAIN_ASSETS.length];
-    mountainSpecs.push({
-      left: i * 230 + (Math.random() * 60),
-      width: (mountainAsset.aspectW / mountainAsset.aspectH) * height,
-      height,
-      src: mountainAsset.src,
-    });
-  }
-
   const towerCount = Math.ceil(sceneWidth / 95) + 6;
   const towerSpecs = [];
   for (let i = 0; i < towerCount; i++) {
@@ -323,18 +334,6 @@ function buildCityLandscape() {
   }
 
   for (let copy = 0; copy < 2; copy++) {
-    mountainSpecs.forEach((spec) => {
-      const mountain = document.createElement('img');
-      mountain.className = 'mountain-shape mountain-asset';
-      mountain.style.left = `${spec.left + copy * sceneWidth}px`;
-      mountain.style.width = `${spec.width}px`;
-      mountain.style.height = `${spec.height}px`;
-      mountain.src = spec.src;
-      mountain.alt = '';
-      mountain.draggable = false;
-      cityLandscape.appendChild(mountain);
-    });
-
     towerSpecs.forEach((spec) => {
       const tower = document.createElement('div');
       tower.className = 'skyline-tower';
@@ -560,10 +559,8 @@ requestAnimationFrame(autoScroll);
 const car = document.getElementById('car');
 if (car) {
   car.className = 'car-fleet';
-  const carColors = ['#2f2f31', '#3a3a3d', '#4a4a4e', '#57575b', '#67676d'];
-  const carAccent = ['#d8d8da', '#c7c7ca', '#e1e1e3', '#b9b9bd', '#ececee'];
   const CAR_COUNT = 3;
-  const CAR_WIDTH = 120;
+  const CAR_WIDTH = 132;
   const CAR_MIN_SPEED = 95;
   const CAR_MAX_SPEED = 185;
   const CAR_RESPAWN_MIN_GAP = 220;
@@ -590,19 +587,12 @@ if (car) {
   for (let i = 0; i < CAR_COUNT; i++) {
     const sprite = document.createElement('div');
     sprite.className = 'car-sprite';
-    sprite.style.setProperty('--car-color', carColors[Math.floor(Math.random() * carColors.length)]);
-    sprite.style.setProperty('--car-accent', carAccent[Math.floor(Math.random() * carAccent.length)]);
-    sprite.style.setProperty('--car-bottom', '102px');
-    sprite.innerHTML = `
-      <div class="car-body"></div>
-      <div class="car-roof"></div>
-      <div class="car-window"></div>
-      <div class="car-window2"></div>
-      <div class="car-headlight"></div>
-      <div class="car-beam"></div>
-      <div class="car-wheel"></div>
-      <div class="car-wheel2"></div>
-    `;
+    sprite.style.setProperty('--car-bottom', '82px');
+    const carArt = document.createElement('img');
+    carArt.src = 'assets/car.png';
+    carArt.alt = '';
+    carArt.draggable = false;
+    sprite.appendChild(carArt);
     car.appendChild(sprite);
 
     const leadOffset = (i + 1) * (CAR_RESPAWN_MIN_GAP + 80);

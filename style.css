@@ -84,6 +84,7 @@ body.layout-16x9 .sky {
   position: absolute;
   bottom: 0;
   border-radius: 50% 50% 0 0;
+  z-index: 2;
 }
 
 .hill-1 {
@@ -113,8 +114,10 @@ body.layout-16x9 .sky {
 
 .mountain-shape {
   position: absolute;
-  bottom: 30px;
-  opacity: 0.65;
+  bottom: 56px;
+  opacity: 0.38;
+  filter: saturate(0.8) brightness(0.86);
+  z-index: 1;
 }
 
 .mountain-asset {
@@ -460,11 +463,20 @@ body.layout-16x9 .sky {
   position: fixed;
   bottom: var(--car-bottom, 98px);
   left: 0;
-  width: 120px;
-  height: 48px;
+  width: 132px;
+  height: 74px;
   z-index: 10;
   pointer-events: none;
   will-change: transform;
+}
+
+.car-sprite img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
 }
 .car-body {
   position: absolute;
