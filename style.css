@@ -114,9 +114,14 @@ body.layout-16x9 .sky {
 .mountain-shape {
   position: absolute;
   bottom: 30px;
-  background: linear-gradient(to top, #262626 0%, #4e4e4e 100%);
-  clip-path: polygon(50% 0, 100% 100%, 0 100%);
   opacity: 0.65;
+}
+
+.mountain-asset {
+  object-fit: contain;
+  object-position: bottom center;
+  pointer-events: none;
+  user-select: none;
 }
 
 .skyline-tower {

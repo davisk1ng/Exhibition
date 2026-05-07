@@ -38,6 +38,11 @@ const BUILDING_ASSETS = [
   { buildingId: 3, src: 'assets/buildings/building3.svg', aspectW: 197.08, aspectH: 592.46 },
   { buildingId: 4, src: 'assets/buildings/building4.svg', aspectW: 142.9, aspectH: 717.26 },
 ];
+const MOUNTAIN_ASSETS = [
+  { src: 'assets/mountains/mountain%201.svg', aspectW: 278, aspectH: 121 },
+  { src: 'assets/mountains/mountain%202.svg', aspectW: 278, aspectH: 121 },
+  { src: 'assets/mountains/mountain%203.svg', aspectW: 278, aspectH: 121 },
+];
 const ROOFTOP_ELIGIBLE_BUILDING_IDS = new Set([2, 3]);
 const ASSET_BUILDING_DISPLAY_HEIGHT = 400;
 
@@ -289,10 +294,13 @@ function buildCityLandscape() {
   const mountainCount = Math.ceil(sceneWidth / 230) + 3;
   const mountainSpecs = [];
   for (let i = 0; i < mountainCount; i++) {
+    const height = 80 + Math.random() * 90;
+    const mountainAsset = MOUNTAIN_ASSETS[i % MOUNTAIN_ASSETS.length];
     mountainSpecs.push({
       left: i * 230 + (Math.random() * 60),
-      width: 180 + Math.random() * 120,
-      height: 80 + Math.random() * 90,
+      width: (mountainAsset.aspectW / mountainAsset.aspectH) * height,
+      height,
+      src: mountainAsset.src,
     });
   }
 
@@ -316,11 +324,14 @@ function buildCityLandscape() {
 
   for (let copy = 0; copy < 2; copy++) {
     mountainSpecs.forEach((spec) => {
-      const mountain = document.createElement('div');
-      mountain.className = 'mountain-shape';
+      const mountain = document.createElement('img');
+      mountain.className = 'mountain-shape mountain-asset';
       mountain.style.left = `${spec.left + copy * sceneWidth}px`;
       mountain.style.width = `${spec.width}px`;
       mountain.style.height = `${spec.height}px`;
+      mountain.src = spec.src;
+      mountain.alt = '';
+      mountain.draggable = false;
       cityLandscape.appendChild(mountain);
     });
 
