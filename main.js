@@ -135,7 +135,20 @@ function shuffle(array) {
   }
   return array;
 }
-shuffle(BILLBOARD_MEDIA);
+
+function createRandomCycle(items) {
+  const source = Array.isArray(items) ? items.filter(Boolean) : [];
+  let bag = [];
+  return () => {
+    if (!source.length) return null;
+    if (!bag.length) bag = shuffle([...source]);
+    return bag.pop() || null;
+  };
+}
+
+const getNextForegroundMedia = createRandomCycle(BILLBOARD_MEDIA);
+const getNextBlimpVideo = createRandomCycle(videoFiles.map((fileName) => `assets/videos/${fileName}`));
+
 const foregroundBillboardCount = Math.max(8, BILLBOARD_MEDIA.length);
 const sceneWidth = Math.max(
   window.innerWidth * 4,
@@ -156,6 +169,26 @@ function createBillboard(media, variant, idx) {
 
   const billboard = document.createElement('div');
   billboard.className = `billboard ${media.size}`;
+
+  const createLoadingOverlay = () => {
+    const loader = document.createElement('div');
+    loader.className = 'billboard-loader';
+
+    const spinner = document.createElement('div');
+    spinner.className = 'billboard-loader-spinner';
+
+    const track = document.createElement('div');
+    track.className = 'billboard-loader-track';
+
+    const fill = document.createElement('div');
+    fill.className = 'billboard-loader-fill';
+    track.appendChild(fill);
+
+    loader.appendChild(spinner);
+    loader.appendChild(track);
+
+    return { loader, fill };
+  };
 
   const applyAspect = (aspect) => {
     if (!Number.isFinite(aspect) || aspect <= 0) return;
@@ -221,6 +254,7 @@ function createBillboard(media, variant, idx) {
     }
 
     const video = document.createElement('video');
+    const { loader, fill } = createLoadingOverlay();
     video.src = nextMedia.src;
     video.autoplay = true;
     video.loop = true;
@@ -233,15 +267,33 @@ function createBillboard(media, variant, idx) {
     video.setAttribute('loop', '');
     video.setAttribute('playsinline', '');
     registerManagedAutoplayVideo(video, idx);
+
+    const updateLoadingProgress = () => {
+      let progress = 0;
+      if (video.duration && Number.isFinite(video.duration) && video.duration > 0 && video.buffered.length) {
+        const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+        progress = Math.min(1, bufferedEnd / video.duration);
+      } else if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+        progress = 0.5;
+      }
+      fill.style.transform = `scaleX(${progress})`;
+      loader.dataset.progress = String(progress);
+    };
+
+    updateLoadingProgress();
     video.addEventListener('loadedmetadata', () => {
       applyAspect(video.videoWidth / video.videoHeight);
+      updateLoadingProgress();
     }, { once: true });
+    video.addEventListener('progress', updateLoadingProgress);
     video.addEventListener('loadeddata', () => {
       billboard.classList.add('is-ready');
+      loader.remove();
       syncManagedVideoPlayback();
     }, { once: true });
     video.addEventListener('canplay', () => {
       billboard.classList.add('is-ready');
+      loader.remove();
       syncManagedVideoPlayback();
     }, { once: true });
     video.addEventListener('error', () => {
@@ -250,6 +302,7 @@ function createBillboard(media, variant, idx) {
       renderMedia(fallbackMedia);
     }, { once: true });
     billboard.appendChild(video);
+    billboard.appendChild(loader);
 
     // Guard against "forever loading" media that never reaches ready state.
     setTimeout(() => {
@@ -382,13 +435,9 @@ function buildCityLandscape() {
   registerManagedAutoplayVideo(blimpVideo, -1);
   blimpBillboard.appendChild(blimpVideo);
 
-  const blimpVideos = shuffle(videoFiles.map((fileName) => `assets/videos/${fileName}`));
-  let blimpVideoIndex = 0;
-
   const setBlimpVideo = () => {
-    if (!blimpVideos.length) return;
-    const src = blimpVideos[blimpVideoIndex % blimpVideos.length];
-    blimpVideoIndex += 1;
+    const src = getNextBlimpVideo();
+    if (!src) return;
     blimpVideo.src = src;
     blimpVideo.load();
     syncManagedVideoPlayback();
@@ -451,14 +500,16 @@ function buildStripAndBillboards() {
 
   const foregroundStart = 220;
   const baseForegroundPositions = [];
+  const foregroundAssignedMedia = [];
   const foregroundStep = (foregroundSpacing * 2) / foregroundDensityMultiplier;
   for (let x = foregroundStart; x <= sceneWidth + 300; x += foregroundStep) {
     baseForegroundPositions.push(x);
   }
   for (let copy = 0; copy < 2; copy++) {
     baseForegroundPositions.forEach((x, idx) => {
-      const mediaIndex = (idx + copy * baseForegroundPositions.length) % BILLBOARD_MEDIA.length;
-      const media = BILLBOARD_MEDIA[mediaIndex];
+      const media = getNextForegroundMedia() || BILLBOARD_MEDIA[0];
+      if (!media) return;
+      foregroundAssignedMedia.push(media);
       const frontFrame = createBillboard(media, 'foreground', idx + copy * baseForegroundPositions.length);
       frontFrame.style.left = `${x + copy * sceneWidth}px`;
       const centerPole = document.createElement('div');
@@ -469,13 +520,20 @@ function buildStripAndBillboards() {
   }
 
   const buildingsPerSegment = buildingSpecs.length;
+  const foregroundVideoSrcs = new Set(
+    foregroundAssignedMedia
+      .filter((media) => media.type === 'video')
+      .map((media) => media.src)
+  );
+
+  // Always cycle through all media for rooftop billboards for more variety
+  const getNextRooftopMedia = createRandomCycle(BILLBOARD_MEDIA);
 
   for (let copy = 0; copy < 2; copy++) {
-    let rooftopMediaIdx = 0;
     for (let localIndex = 0; localIndex < buildingsPerSegment; localIndex++) {
       if (!buildingSpecs[localIndex].rooftopEligible) continue;
-      const media = BILLBOARD_MEDIA[rooftopMediaIdx % BILLBOARD_MEDIA.length];
-      rooftopMediaIdx += 1;
+      const media = getNextRooftopMedia() || BILLBOARD_MEDIA[0];
+      if (!media) continue;
       const rooftopFrame = createBillboard(media, 'rooftop', localIndex + copy * buildingsPerSegment);
       const support = document.createElement('div');
       support.className = 'billboard-pole rooftop-pole';
