@@ -46,7 +46,20 @@ const ROOFTOP_ELIGIBLE_BUILDING_IDS = new Set([2, 3]);
 const ASSET_BUILDING_DISPLAY_HEIGHT = 400;
 
 const screenshotFiles = ['1777300186.850243.jpg'];
-const videoFiles = ['Screen RecordingSquare.mov', 'video-export 4-5.mp4', 'Finventory Recording.mov', 'Flicker Exhibition Video.mp4'];
+const videoFiles = [
+  '256 Project 3.mp4',
+  'feed.mp4',
+  'final_cropped_bitebuddy.mp4',
+  'Finventory Recording.mov',
+  'Flicker Exhibition Video.mp4',
+  'Screen RecordingSquare.mov',
+  'secret pokemon ending.mp4',
+  'tutorial.mp4',
+  'UV app.mp4',
+  'video-export 4-5.mp4',
+  'video-export-feed-4x5-hq (1).mp4',
+  'video-export-story-9x16-hq (2).mp4',
+];
 
 function getVideoBillboardSize(fileName) {
   // Portrait exports should use tall billboards.
@@ -146,8 +159,32 @@ function createRandomCycle(items) {
   };
 }
 
-const getNextForegroundMedia = createRandomCycle(BILLBOARD_MEDIA);
 const getNextBlimpVideo = createRandomCycle(videoFiles.map((fileName) => `assets/videos/${fileName}`));
+
+// Tracks every billboard placement (front + rooftop) by scene X so we can
+// avoid putting the same media on two billboards that are visible together.
+const placedBillboards = [];
+// Roughly the spacing between adjacent foreground billboards. Anything
+// inside this radius is treated as a "neighbor" we should not duplicate.
+const BILLBOARD_NEIGHBOR_RADIUS = 720;
+
+function pickBillboardMedia(centerX) {
+  if (!BILLBOARD_MEDIA.length) return null;
+  const blockedSrcs = new Set();
+  for (const entry of placedBillboards) {
+    if (Math.abs(entry.x - centerX) <= BILLBOARD_NEIGHBOR_RADIUS) {
+      blockedSrcs.add(entry.src);
+    }
+  }
+  let candidates = BILLBOARD_MEDIA.filter((m) => !blockedSrcs.has(m.src));
+  if (!candidates.length) candidates = BILLBOARD_MEDIA;
+  return candidates[Math.floor(Math.random() * candidates.length)];
+}
+
+function recordPlacedBillboard(centerX, media) {
+  if (!media) return;
+  placedBillboards.push({ x: centerX, src: media.src });
+}
 
 const foregroundBillboardCount = Math.max(8, BILLBOARD_MEDIA.length);
 const sceneWidth = Math.max(
@@ -283,6 +320,15 @@ function createBillboard(media, variant, idx) {
     updateLoadingProgress();
     video.addEventListener('loadedmetadata', () => {
       applyAspect(video.videoWidth / video.videoHeight);
+      // Desync: start each video at a random point in its timeline so that
+      // duplicated media on different billboards never plays in lockstep.
+      if (Number.isFinite(video.duration) && video.duration > 0) {
+        try {
+          video.currentTime = Math.random() * video.duration;
+        } catch (_err) {
+          // Some browsers throw before the video is fully seekable; ignore.
+        }
+      }
       updateLoadingProgress();
     }, { once: true });
     video.addEventListener('progress', updateLoadingProgress);
@@ -507,11 +553,13 @@ function buildStripAndBillboards() {
   }
   for (let copy = 0; copy < 2; copy++) {
     baseForegroundPositions.forEach((x, idx) => {
-      const media = getNextForegroundMedia() || BILLBOARD_MEDIA[0];
+      const sceneX = x + copy * sceneWidth;
+      const media = pickBillboardMedia(sceneX) || BILLBOARD_MEDIA[0];
       if (!media) return;
       foregroundAssignedMedia.push(media);
+      recordPlacedBillboard(sceneX, media);
       const frontFrame = createBillboard(media, 'foreground', idx + copy * baseForegroundPositions.length);
-      frontFrame.style.left = `${x + copy * sceneWidth}px`;
+      frontFrame.style.left = `${sceneX}px`;
       const centerPole = document.createElement('div');
       centerPole.className = 'billboard-pole roadside-pole center';
       frontFrame.appendChild(centerPole);
@@ -520,20 +568,31 @@ function buildStripAndBillboards() {
   }
 
   const buildingsPerSegment = buildingSpecs.length;
-  const foregroundVideoSrcs = new Set(
-    foregroundAssignedMedia
-      .filter((media) => media.type === 'video')
-      .map((media) => media.src)
-  );
 
-  // Always cycle through all media for rooftop billboards for more variety
-  const getNextRooftopMedia = createRandomCycle(BILLBOARD_MEDIA);
+  // Pre-compute the scene-space center X for every building so the rooftop
+  // picker can avoid reusing media that already appears on a nearby
+  // foreground billboard.
+  const buildingCentersX = [];
+  {
+    const buildingCssMargin = 12; // matches `.building.asset-building` margin in style.css
+    let cursor = 0;
+    for (let copy = 0; copy < 2; copy++) {
+      buildingSpecs.forEach((spec) => {
+        const centerX = cursor + buildingCssMargin + spec.width / 2;
+        buildingCentersX.push(centerX);
+        cursor += spec.width + buildingCssMargin * 2;
+      });
+    }
+  }
 
   for (let copy = 0; copy < 2; copy++) {
     for (let localIndex = 0; localIndex < buildingsPerSegment; localIndex++) {
       if (!buildingSpecs[localIndex].rooftopEligible) continue;
-      const media = getNextRooftopMedia() || BILLBOARD_MEDIA[0];
+      const buildingIndex = copy * buildingsPerSegment + localIndex;
+      const rooftopX = buildingCentersX[buildingIndex] ?? 0;
+      const media = pickBillboardMedia(rooftopX) || BILLBOARD_MEDIA[0];
       if (!media) continue;
+      recordPlacedBillboard(rooftopX, media);
       const rooftopFrame = createBillboard(media, 'rooftop', localIndex + copy * buildingsPerSegment);
       const support = document.createElement('div');
       support.className = 'billboard-pole rooftop-pole';
@@ -543,7 +602,6 @@ function buildStripAndBillboards() {
       anchor.className = 'rooftop-anchor';
       anchor.appendChild(rooftopFrame);
 
-      const buildingIndex = copy * buildingsPerSegment + localIndex;
       const targetBuilding = buildings[buildingIndex];
       if (targetBuilding) targetBuilding.appendChild(anchor);
     }

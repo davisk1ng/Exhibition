@@ -117,8 +117,7 @@ body.layout-16x9 .sky {
   bottom: 56px;
   opacity: 0.38;
   filter: saturate(0.8) brightness(0.86);
-  z-index: 1;
-}
+  z-index: 1;}
 
 .mountain-asset {
   object-fit: contain;
