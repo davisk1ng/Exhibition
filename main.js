@@ -193,6 +193,10 @@ const sceneWidth = Math.max(
 );
 const layerWidth = sceneWidth * 2 + window.innerWidth;
 
+// Pixel width of one flex row of buildings (must match modulo on scroll for a
+// seamless strip; sceneWidth alone is usually different and caused visible jumps).
+let stripSegmentWidth = sceneWidth;
+
 hillsLayer.style.width = `${layerWidth}px`;
 cityLandscape.style.width = `${layerWidth}px`;
 rearGroundBlock.style.width = `${layerWidth}px`;
@@ -525,6 +529,12 @@ function buildStripAndBillboards() {
     coveredWidth += displayWidth + buildingMargin * 2;
   }
 
+  stripSegmentWidth = 0;
+  buildingSpecs.forEach((spec) => {
+    stripSegmentWidth += spec.width + buildingMargin * 2;
+  });
+  if (!(stripSegmentWidth > 0)) stripSegmentWidth = sceneWidth;
+
   for (let copy = 0; copy < 2; copy++) {
     buildingSpecs.forEach((spec) => {
       const building = document.createElement('div');
@@ -634,7 +644,10 @@ requestAnimationFrame(() => {
   preventBillboardTouching('.billboard-frame.rooftop', 8);
 });
 
-let scrollPos = 0;
+// Monotonic scroll distance (px). Do not fold with % here: the building strip
+// repeats every stripSegmentWidth while hills/city repeat every sceneWidth;
+// folding everything with sceneWidth desynced the strip from its tiled copies.
+let scrollDistance = 0;
 const baseSpeed = 33;
 let lastScrollTimestamp = performance.now();
 
@@ -651,13 +664,15 @@ function autoScroll(timestamp) {
   try {
     const deltaSeconds = Math.min(0.05, (timestamp - lastScrollTimestamp) / 1000);
     lastScrollTimestamp = timestamp;
-    // Keep scrollPos bounded to avoid floating-point precision loss over time.
-    scrollPos = (scrollPos + baseSpeed * deltaSeconds) % sceneWidth;
-    const hillsOffset = (scrollPos * 0.35) % sceneWidth;
-    const cityOffset = (scrollPos * 0.6) % sceneWidth;
-    const groundOffset = (scrollPos * 0.75) % sceneWidth;
-    const stripOffset = (scrollPos * 0.9) % sceneWidth;
-    const foregroundOffset = scrollPos;
+    scrollDistance += baseSpeed * deltaSeconds;
+
+    const w = sceneWidth;
+    const stripW = stripSegmentWidth > 0 ? stripSegmentWidth : w;
+    const hillsOffset = (scrollDistance * 0.35) % w;
+    const cityOffset = (scrollDistance * 0.6) % w;
+    const groundOffset = (scrollDistance * 0.75) % w;
+    const stripOffset = (scrollDistance * 0.9) % stripW;
+    const foregroundOffset = scrollDistance % w;
 
     hillsLayer.style.transform = `translateX(${-hillsOffset}px)`;
     cityLandscape.style.transform = `translateX(${-cityOffset}px)`;
