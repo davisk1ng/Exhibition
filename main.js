@@ -42,8 +42,40 @@ const MOUNTAIN_ASSETS = [
   { src: 'assets/mountains/mountain%201.png', aspectW: 278, aspectH: 121 },
   { src: 'assets/mountains/mountain%202.png', aspectW: 278, aspectH: 121 },
 ];
+const HILLS_SVG_SRC = 'assets/mountains/hills.svg';
+const HILLS_SVG_VIEWBOX_W = 3671.88;
+const HILLS_SVG_VIEWBOX_H = 792;
+/** Must match `.hills-layer` height in style.css (tile height). */
+const HILLS_LAYER_HEIGHT_PX = 260;
 const ROOFTOP_ELIGIBLE_BUILDING_IDS = new Set([2, 3]);
 const ASSET_BUILDING_DISPLAY_HEIGHT = 400;
+/** Vertical nudge for blade signs (px), added to % `top` on each mount. */
+const HANGING_SIGN_TOP_OFFSET_PX = 250;
+/** How many full building sequences are laid in a row (must match buildStrip loops). */
+const STRIP_BUILDING_ROW_COPIES = 2;
+
+/**
+ * Hanging facade signs (Googie). `side`: fixed edge; `null` = random left/right per page load.
+ * New World / Motel / Holiday Motel = left only. Drive-In Paradise / Star Motel / BLD Cafe = right only
+ * (brief also names this “CLD Cafe”; the asset file is BLD Cafe).
+ */
+const FACADE_SIGN_DEFS = [
+  {
+    src: 'assets/Signs/Googie%20Style%20Signs_New%20World%20Restaurant.svg',
+    side: 'left',
+  },
+  { src: 'assets/Signs/Googie%20Style%20Signs_Motel.svg', side: 'left' },
+  { src: 'assets/Signs/Googie%20Style%20Signs_Holiday%20Motel.svg', side: 'left' },
+  {
+    src: 'assets/Signs/Googie%20Style%20Signs_Drive-In%20Paradise.svg',
+    side: 'right',
+  },
+  { src: 'assets/Signs/Googie%20Style%20Signs_Star%20Motel.svg', side: 'right' },
+  { src: 'assets/Signs/Googie%20Style%20Signs_BLD%20Cafe.svg', side: 'right' },
+  { src: 'assets/Signs/Googie%20Style%20Signs_Palm%20Motel.svg', side: null },
+  { src: 'assets/Signs/Googie%20Style%20Signs_Wanderer%20Motel.svg', side: null },
+  { src: 'assets/Signs/Googie%20Style%20Signs_24%20hr%20Cafe.svg', side: null },
+];
 
 const screenshotFiles = ['1777300186.850243.jpg'];
 const videoFiles = [
@@ -184,6 +216,122 @@ function pickBillboardMedia(centerX) {
 function recordPlacedBillboard(centerX, media) {
   if (!media) return;
   placedBillboards.push({ x: centerX, src: media.src });
+}
+
+function resolveFacadeSignSide(def) {
+  if (def.side === 'left' || def.side === 'right') return def.side;
+  return Math.random() < 0.5 ? 'left' : 'right';
+}
+
+/**
+ * Spaces blades with a fixed stride along the entire physical row (all tiled copies).
+ * If we only stride within one segment then duplicate for copy 1, the gap across the
+ * segment seam is wider than the stride — signs look like they “spread out” each loop.
+ */
+function planHangingSignPlacements(buildingsPerSegment) {
+  if (!buildingsPerSegment || !FACADE_SIGN_DEFS.length) return [];
+
+  const pool = shuffle(
+    FACADE_SIGN_DEFS.map((def) => ({
+      src: def.src,
+      side: resolveFacadeSignSide(def),
+    })),
+  );
+
+  const totalSlots = buildingsPerSegment * STRIP_BUILDING_ROW_COPIES;
+  const vw = typeof window !== 'undefined' ? window.innerWidth : 1200;
+  const estInView = Math.max(2, Math.min(buildingsPerSegment, Math.ceil(vw / 240)));
+  const stride = Math.max(2, estInView - 1);
+  const start = Math.floor(Math.random() * Math.min(stride, totalSlots));
+
+  const placements = [];
+  let pi = 0;
+  for (let g = start; g < totalSlots; g += stride) {
+    const copy = Math.floor(g / buildingsPerSegment);
+    const localIndex = g % buildingsPerSegment;
+    const spec = pool[pi % pool.length];
+    pi += 1;
+    placements.push({ copy, localIndex, src: spec.src, side: spec.side });
+  }
+
+  if (!placements.length) {
+    const spec = pool[0];
+    placements.push({ copy: 0, localIndex: 0, src: spec.src, side: spec.side });
+  }
+
+  return placements;
+}
+
+function computeBuildingLeftEdges(buildingSpecs, buildingMargin) {
+  const edges = [];
+  let cursor = 0;
+  for (let i = 0; i < buildingSpecs.length; i += 1) {
+    edges.push(cursor + buildingMargin);
+    cursor += buildingSpecs[i].width + buildingMargin * 2;
+  }
+  return edges;
+}
+
+/**
+ * Paints hanging signs in a strip overlay so blades in the gutter stay in front of every building
+ * (flex siblings would otherwise cover protruding art).
+ */
+function attachHangingSignsOverlay(
+  buildingSpecs,
+  buildingMargin,
+  buildingsPerSegment,
+  segmentWidth,
+) {
+  if (!FACADE_SIGN_DEFS.length || buildingsPerSegment <= 0) return;
+
+  const stripRoot = document.getElementById('buildings') ?? buildingsContainer;
+  if (!stripRoot) return;
+
+  const placements = planHangingSignPlacements(buildingsPerSegment);
+  if (!placements.length) return;
+
+  const leftEdges = computeBuildingLeftEdges(buildingSpecs, buildingMargin);
+  stripRoot.querySelectorAll('.hanging-signs-overlay').forEach((el) => el.remove());
+
+  const overlay = document.createElement('div');
+  overlay.className = 'hanging-signs-overlay';
+  overlay.setAttribute('aria-hidden', 'true');
+  stripRoot.appendChild(overlay);
+
+  for (const { copy, localIndex, src, side } of placements) {
+    const spec = buildingSpecs[localIndex];
+    if (!spec) continue;
+
+    const topPct = 1 + Math.random() * 11;
+    const edgePx = 2 + Math.random() * 6;
+    const tilt = (Math.random() - 0.5) * 3.5;
+    const sideClass = side === 'left' ? 'hanging-sign--left' : 'hanging-sign--right';
+
+    const left = leftEdges[localIndex] + copy * segmentWidth;
+
+    const mount = document.createElement('div');
+    mount.className = 'hanging-sign-mount';
+    mount.style.left = `${left}px`;
+    mount.style.width = `${spec.width}px`;
+    mount.style.height = `${spec.height}px`;
+
+    const wrap = document.createElement('div');
+    wrap.className = `hanging-sign ${sideClass}`;
+    wrap.style.top = `calc(${topPct}% + ${HANGING_SIGN_TOP_OFFSET_PX}px)`;
+    if (side === 'left') {
+      wrap.style.transform = `translateX(${edgePx}px) rotate(${tilt}deg)`;
+    } else {
+      wrap.style.transform = `translateX(${-edgePx}px) rotate(${tilt}deg)`;
+    }
+
+    const img = document.createElement('img');
+    img.src = src;
+    img.alt = '';
+    img.draggable = false;
+    wrap.appendChild(img);
+    mount.appendChild(wrap);
+    overlay.appendChild(mount);
+  }
 }
 
 const foregroundBillboardCount = Math.max(8, BILLBOARD_MEDIA.length);
@@ -382,16 +530,8 @@ function buildHills() {
     });
   }
 
-  const baseHillCount = Math.ceil(sceneWidth / 260) + 3;
-  const hillSpecs = [];
-  for (let i = 0; i < baseHillCount; i++) {
-    hillSpecs.push({
-      className: `hill-shape hill-${(i % 3) + 1}`,
-      width: 260 + Math.random() * 220,
-      height: 100 + Math.random() * 90,
-      left: i * 260,
-    });
-  }
+  const hillTileWidth = (HILLS_SVG_VIEWBOX_W / HILLS_SVG_VIEWBOX_H) * HILLS_LAYER_HEIGHT_PX;
+  const hillTileCount = Math.ceil(sceneWidth / hillTileWidth) + 3;
 
   for (let copy = 0; copy < 2; copy++) {
     mountainSpecs.forEach((spec) => {
@@ -406,14 +546,17 @@ function buildHills() {
       hillsLayer.appendChild(mountain);
     });
 
-    hillSpecs.forEach((spec) => {
-      const hill = document.createElement('div');
-      hill.className = spec.className;
-      hill.style.width = `${spec.width}px`;
-      hill.style.height = `${spec.height}px`;
-      hill.style.left = `${spec.left + copy * sceneWidth}px`;
+    for (let i = 0; i < hillTileCount; i += 1) {
+      const hill = document.createElement('img');
+      hill.className = 'hills-svg-tile';
+      hill.style.left = `${i * hillTileWidth + copy * sceneWidth}px`;
+      hill.style.width = `${hillTileWidth}px`;
+      hill.style.height = `${HILLS_LAYER_HEIGHT_PX}px`;
+      hill.src = HILLS_SVG_SRC;
+      hill.alt = '';
+      hill.draggable = false;
       hillsLayer.appendChild(hill);
-    });
+    }
   }
 }
 
@@ -543,11 +686,15 @@ function buildStripAndBillboards() {
       building.style.height = `${spec.height}px`;
       building.style.width = `${spec.width}px`;
 
+      const facade = document.createElement('div');
+      facade.className = 'building-facade';
+
       const img = document.createElement('img');
       img.src = spec.src;
       img.alt = '';
       img.draggable = false;
-      building.appendChild(img);
+      facade.appendChild(img);
+      building.appendChild(facade);
 
       buildingsContainer.appendChild(building);
       buildings.push(building);
@@ -616,6 +763,13 @@ function buildStripAndBillboards() {
       if (targetBuilding) targetBuilding.appendChild(anchor);
     }
   }
+
+  attachHangingSignsOverlay(
+    buildingSpecs,
+    buildingMargin,
+    buildingsPerSegment,
+    stripSegmentWidth,
+  );
 }
 
 function preventBillboardTouching(selector, minGap) {

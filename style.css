@@ -80,23 +80,14 @@ body.layout-16x9 .sky {
   z-index: 1;
 }
 
-.hill-shape {
+.hills-svg-tile {
   position: absolute;
   bottom: 0;
-  border-radius: 50% 50% 0 0;
   z-index: 2;
-}
-
-.hill-1 {
-  background: #575757;
-}
-
-.hill-2 {
-  background: #474747;
-}
-
-.hill-3 {
-  background: #686868;
+  object-fit: cover;
+  object-position: bottom center;
+  pointer-events: none;
+  user-select: none;
 }
 
 .city-landscape-layer {
@@ -232,6 +223,21 @@ body.layout-16x9 .sky {
   align-items: flex-end;
 }
 
+.hanging-signs-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.hanging-sign-mount {
+  position: absolute;
+  bottom: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+
 .building {
   position: relative;
   margin: 0 14px;
@@ -247,20 +253,64 @@ body.layout-16x9 .sky {
   border-radius: 0;
   background: transparent;
   box-shadow: none;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
+  position: relative;
+  display: block;
   flex-shrink: 0;
 }
 
-.building.asset-building img {
-  display: block;
+/* Inner shell for the building SVG only; blade signs render in .hanging-signs-overlay. */
+.building-facade {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+  isolation: isolate;
+  z-index: 1;
+}
+
+.building-facade > img {
+  position: absolute;
+  left: 0;
+  bottom: 0;
   width: 100%;
   height: 100%;
   object-fit: contain;
   object-position: bottom center;
   pointer-events: none;
   user-select: none;
+  z-index: 0;
+}
+
+/* Googie blade signs: mounted beside the façade, separate from billboard frames. */
+.hanging-sign {
+  position: absolute;
+  z-index: 2;
+  height: clamp(60px, 28%, 148px);
+  width: max-content;
+  max-width: min(72%, 240px);
+  pointer-events: none;
+}
+
+.hanging-sign img {
+  display: block;
+  height: 100%;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  filter: drop-shadow(1px 4px 8px rgba(0, 0, 0, 0.4));
+}
+
+/* Flush to façade vertical edge; JS nudges a few px inward along X. */
+.hanging-sign--left {
+  right: 100%;
+  left: auto;
+  transform-origin: top right;
+}
+
+.hanging-sign--right {
+  left: 100%;
+  right: auto;
+  transform-origin: top left;
 }
 
 .building.type-0 {
@@ -483,6 +533,7 @@ body.layout-16x9 .sky {
   left: 50%;
   transform: translateX(-50%);
   bottom: calc(100% + 3px);
+  z-index: 5;
 }
 
 .rooftop-pole {
